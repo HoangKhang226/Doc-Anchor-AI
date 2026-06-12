@@ -1,0 +1,35 @@
+# FinSight AI — Core Dependencies
+
+# Config
+python-dotenv>=1.0.0
+pydantic>=2.0
+pydantic-settings>=2.0
+PyYAML>=6.0
+
+# Tầng: Ingestion & Layout Parsing
+docling>=2.0
+numpy<2.0
+opencv-python>=4.8
+Pillow>=10.0
+kornia>=0.7
+pymupdf>=1.24
+pdfplumber>=0.11
+rapidfuzz>=3.9
+python-dateutil>=2.9
+
+# Tầng: VLM OCR (via Ollama)
+langchain-ollama>=0.3
+
+
+# Tầng: Agentic Reasoning
+langgraph>=0.4
+langchain-core>=0.3
+
+# Tầng: Backend
+fastapi>=0.115
+uvicorn>=0.34
+sse-starlette>=2.0
+python-multipart>=0.0.9
+
+# Observability (optional)
+langsmith>=0.3

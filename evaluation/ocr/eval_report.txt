@@ -1,0 +1,259 @@
+BÁO CÁO ĐÁNH GIÁ ĐA CHIỀU — FinSight AI OCR
+==============================================================================================================
+
+[evaluation_image_1.webp]
+  Text:    CER=0.069  WER=0.292  Sim=95.44%  TokenSim=85.46%
+  Content: NumF1=99.40% (recall=100.00%, precision=98.70%, matched=77/77)  LabelRecall=83.70%
+  >>> Content Score = 93.10%
+
+[evaluation_image_10.jpg]
+  Text:    CER=0.091  WER=0.145  Sim=94.54%  TokenSim=95.17%
+  Content: NumF1=96.90% (recall=96.90%, precision=96.90%, matched=62/64)  LabelRecall=86.30%
+  >>> Content Score = 92.60%
+
+[evaluation_image_11.png]
+  Text:    CER=0.203  WER=0.215  Sim=88.72%  TokenSim=88.72%
+  Content: NumF1=83.10% (recall=71.10%, precision=100.00%, matched=59/83)  LabelRecall=83.00%
+  >>> Content Score = 83.00%
+
+[evaluation_image_12.jpg]
+  Text:    CER=0.077  WER=0.102  Sim=95.74%  TokenSim=95.31%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=90/90)  LabelRecall=84.90%
+  >>> Content Score = 94.00%
+
+[evaluation_image_13.png]
+  Text:    CER=0.543  WER=0.591  Sim=65.82%  TokenSim=75.47%
+  Content: NumF1=57.50% (recall=40.30%, precision=100.00%, matched=50/124)  LabelRecall=65.90%
+  >>> Content Score = 60.80%
+
+[evaluation_image_14.jpeg]
+  Text:    CER=0.324  WER=0.463  Sim=80.10%  TokenSim=77.34%
+  Content: NumF1=98.50% (recall=98.50%, precision=98.50%, matched=135/137)  LabelRecall=47.10%
+  >>> Content Score = 78.00%
+
+[evaluation_image_15.png]
+  Text:    CER=0.252  WER=0.393  Sim=81.18%  TokenSim=75.03%
+  Content: NumF1=41.40% (recall=39.70%, precision=43.40%, matched=23/58)  LabelRecall=61.00%
+  >>> Content Score = 49.20%
+
+[evaluation_image_16.png]
+  Text:    CER=0.293  WER=0.427  Sim=79.55%  TokenSim=75.20%
+  Content: NumF1=46.20% (recall=39.70%, precision=55.10%, matched=27/68)  LabelRecall=56.40%
+  >>> Content Score = 50.30%
+
+[evaluation_image_17.png]
+  Text:    CER=0.246  WER=0.436  Sim=82.22%  TokenSim=78.61%
+  Content: NumF1=79.30% (recall=71.60%, precision=88.90%, matched=48/67)  LabelRecall=36.40%
+  >>> Content Score = 62.20%
+
+[evaluation_image_18.png]
+  Text:    CER=0.465  WER=0.561  Sim=68.31%  TokenSim=66.56%
+  Content: NumF1=76.70% (recall=70.80%, precision=83.60%, matched=46/65)  LabelRecall=31.30%
+  >>> Content Score = 58.50%
+
+[evaluation_image_19.png]
+  Text:    CER=0.347  WER=0.307  Sim=78.85%  TokenSim=75.83%
+  Content: NumF1=64.20% (recall=82.20%, precision=52.60%, matched=111/135)  LabelRecall=65.60%
+  >>> Content Score = 64.70%
+
+[evaluation_image_2.webp]
+  Text:    CER=0.272  WER=0.252  Sim=83.05%  TokenSim=89.54%
+  Content: NumF1=75.70% (recall=61.90%, precision=97.50%, matched=39/63)  LabelRecall=87.20%
+  >>> Content Score = 80.30%
+
+[evaluation_image_20.png]
+  Text:    CER=0.234  WER=0.263  Sim=86.28%  TokenSim=86.28%
+  Content: NumF1=92.50% (recall=86.00%, precision=100.00%, matched=37/43)  LabelRecall=75.50%
+  >>> Content Score = 85.70%
+
+[evaluation_image_21.jpg]
+  Text:    CER=0.079  WER=0.444  Sim=92.84%  TokenSim=48.28%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=2/2)  LabelRecall=100.00%
+  >>> Content Score = 100.00%
+
+[evaluation_image_22.png]
+  Text:    CER=0.040  WER=0.034  Sim=97.93%  TokenSim=97.93%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=0/0)  LabelRecall=97.70%
+  >>> Content Score = 99.10%
+
+[evaluation_image_23.png]
+  Text:    CER=0.093  WER=0.422  Sim=95.23%  TokenSim=85.40%
+  Content: NumF1=99.20% (recall=98.40%, precision=100.00%, matched=63/64)  LabelRecall=93.10%
+  >>> Content Score = 96.80%
+
+[evaluation_image_24.jpg]
+  Text:    CER=0.286  WER=0.424  Sim=84.41%  TokenSim=94.09%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=11/11)  LabelRecall=83.80%
+  >>> Content Score = 93.50%
+
+[evaluation_image_25.png]
+  Text:    CER=0.358  WER=0.736  Sim=80.13%  TokenSim=78.82%
+  Content: NumF1=88.90% (recall=81.00%, precision=98.60%, matched=68/84)  LabelRecall=100.00%
+  >>> Content Score = 93.30%
+
+[evaluation_image_26.jpg]
+  Text:    CER=0.109  WER=0.238  Sim=93.83%  TokenSim=91.36%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=7/7)  LabelRecall=48.50%
+  >>> Content Score = 79.40%
+
+[evaluation_image_27.png]
+  Text:    CER=0.224  WER=0.611  Sim=86.08%  TokenSim=73.86%
+  Content: NumF1=97.70% (recall=96.40%, precision=99.10%, matched=107/111)  LabelRecall=100.00%
+  >>> Content Score = 98.60%
+
+[evaluation_image_28.jpg]
+  Text:    CER=0.211  WER=0.341  Sim=87.66%  TokenSim=86.73%
+  Content: NumF1=98.70% (recall=98.00%, precision=99.50%, matched=197/201)  LabelRecall=64.50%
+  >>> Content Score = 85.00%
+
+[evaluation_image_29.png]
+  Text:    CER=0.303  WER=0.331  Sim=80.57%  TokenSim=88.26%
+  Content: NumF1=77.80% (recall=77.80%, precision=77.80%, matched=7/9)  LabelRecall=74.00%
+  >>> Content Score = 76.20%
+
+[evaluation_image_3.webp]
+  Text:    CER=0.192  WER=0.222  Sim=89.53%  TokenSim=90.17%
+  Content: NumF1=91.60% (recall=84.50%, precision=100.00%, matched=71/84)  LabelRecall=74.20%
+  >>> Content Score = 84.60%
+
+[evaluation_image_30.webp]
+  Text:    CER=0.272  WER=0.293  Sim=83.99%  TokenSim=83.99%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=0/0)  LabelRecall=57.70%
+  >>> Content Score = 83.10%
+
+[evaluation_image_31.png]
+  Text:    CER=0.246  WER=0.783  Sim=85.84%  TokenSim=73.11%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=9/9)  LabelRecall=71.40%
+  >>> Content Score = 88.60%
+
+[evaluation_image_32.png]
+  Text:    CER=0.091  WER=0.105  Sim=94.99%  TokenSim=95.32%
+  Content: NumF1=99.50% (recall=98.90%, precision=100.00%, matched=94/95)  LabelRecall=90.90%
+  >>> Content Score = 96.10%
+
+[evaluation_image_33.jpg]
+  Text:    CER=0.205  WER=0.257  Sim=88.50%  TokenSim=85.60%
+  Content: NumF1=79.70% (recall=66.70%, precision=99.20%, matched=126/189)  LabelRecall=88.50%
+  >>> Content Score = 83.20%
+
+[evaluation_image_34.webp]
+  Text:    CER=0.351  WER=0.370  Sim=78.47%  TokenSim=77.49%
+  Content: NumF1=96.10% (recall=94.90%, precision=97.40%, matched=37/39)  LabelRecall=45.80%
+  >>> Content Score = 76.00%
+
+[evaluation_image_35.png]
+  Text:    CER=0.239  WER=0.234  Sim=85.11%  TokenSim=86.81%
+  Content: NumF1=74.40% (recall=64.00%, precision=88.90%, matched=48/75)  LabelRecall=80.20%
+  >>> Content Score = 76.70%
+
+[evaluation_image_36.jpg]
+  Text:    CER=0.283  WER=0.368  Sim=83.98%  TokenSim=85.50%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=98/98)  LabelRecall=69.50%
+  >>> Content Score = 87.80%
+
+[evaluation_image_37.jpg]
+  Text:    CER=0.082  WER=0.133  Sim=95.21%  TokenSim=92.92%
+  Content: NumF1=98.60% (recall=97.20%, precision=100.00%, matched=35/36)  LabelRecall=89.10%
+  >>> Content Score = 94.80%
+
+[evaluation_image_38.webp]
+  Text:    CER=0.106  WER=0.270  Sim=93.86%  TokenSim=92.42%
+  Content: NumF1=93.00% (recall=90.90%, precision=95.20%, matched=20/22)  LabelRecall=85.20%
+  >>> Content Score = 89.90%
+
+[evaluation_image_39.jpg]
+  Text:    CER=0.219  WER=0.273  Sim=87.78%  TokenSim=87.35%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=27/27)  LabelRecall=68.90%
+  >>> Content Score = 87.60%
+
+[evaluation_image_4.webp]
+  Text:    CER=0.346  WER=0.506  Sim=75.41%  TokenSim=73.60%
+  Content: NumF1=90.40% (recall=83.10%, precision=99.00%, matched=103/124)  LabelRecall=50.80%
+  >>> Content Score = 74.50%
+
+[evaluation_image_40.jpg]
+  Text:    CER=0.371  WER=0.462  Sim=76.34%  TokenSim=85.03%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=2/2)  LabelRecall=52.70%
+  >>> Content Score = 81.10%
+
+[evaluation_image_41.jpg]
+  Text:    CER=0.275  WER=0.295  Sim=83.57%  TokenSim=84.64%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=12/12)  LabelRecall=72.30%
+  >>> Content Score = 88.90%
+
+[evaluation_image_42.jpg]
+  Text:    CER=0.375  WER=0.416  Sim=77.11%  TokenSim=80.49%
+  Content: NumF1=74.40% (recall=65.30%, precision=86.50%, matched=32/49)  LabelRecall=68.40%
+  >>> Content Score = 72.00%
+
+[evaluation_image_43.jpg]
+  Text:    CER=0.353  WER=0.809  Sim=74.41%  TokenSim=65.49%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=10/10)  LabelRecall=2.60%
+  >>> Content Score = 61.00%
+
+[evaluation_image_44.png]
+  Text:    CER=0.480  WER=0.660  Sim=68.93%  TokenSim=70.97%
+  Content: NumF1=96.30% (recall=100.00%, precision=92.90%, matched=13/13)  LabelRecall=33.30%
+  >>> Content Score = 71.10%
+
+[evaluation_image_45.png]
+  Text:    CER=0.060  WER=0.057  Sim=96.90%  TokenSim=96.90%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=0/0)  LabelRecall=92.50%
+  >>> Content Score = 97.00%
+
+[evaluation_image_46.png]
+  Text:    CER=0.016  WER=0.139  Sim=99.08%  TokenSim=96.65%
+  Content: NumF1=93.50% (recall=91.50%, precision=95.60%, matched=129/141)  LabelRecall=99.00%
+  >>> Content Score = 95.70%
+
+[evaluation_image_47.png]
+  Text:    CER=0.079  WER=0.077  Sim=95.84%  TokenSim=95.71%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=3/3)  LabelRecall=94.40%
+  >>> Content Score = 97.80%
+
+[evaluation_image_48.webp]
+  Text:    CER=0.309  WER=0.349  Sim=84.57%  TokenSim=87.63%
+  Content: NumF1=83.30% (recall=73.40%, precision=96.40%, matched=80/109)  LabelRecall=88.50%
+  >>> Content Score = 85.40%
+
+[evaluation_image_49.webp]
+  Text:    CER=0.204  WER=0.329  Sim=88.79%  TokenSim=93.49%
+  Content: NumF1=92.90% (recall=97.70%, precision=88.50%, matched=85/87)  LabelRecall=91.30%
+  >>> Content Score = 92.30%
+
+[evaluation_image_5.webp]
+  Text:    CER=0.263  WER=0.304  Sim=85.70%  TokenSim=92.39%
+  Content: NumF1=95.40% (recall=97.10%, precision=93.80%, matched=136/140)  LabelRecall=81.00%
+  >>> Content Score = 89.70%
+
+[evaluation_image_50.webp]
+  Text:    CER=0.192  WER=0.364  Sim=89.24%  TokenSim=88.89%
+  Content: NumF1=98.80% (recall=97.60%, precision=100.00%, matched=40/41)  LabelRecall=75.20%
+  >>> Content Score = 89.30%
+
+[evaluation_image_6.png]
+  Text:    CER=0.090  WER=0.101  Sim=95.21%  TokenSim=94.96%
+  Content: NumF1=100.00% (recall=100.00%, precision=100.00%, matched=86/86)  LabelRecall=91.20%
+  >>> Content Score = 96.50%
+
+[evaluation_image_7.png]
+  Text:    CER=0.201  WER=0.620  Sim=84.31%  TokenSim=65.01%
+  Content: NumF1=93.20% (recall=92.60%, precision=93.80%, matched=137/148)  LabelRecall=78.30%
+  >>> Content Score = 87.20%
+
+[evaluation_image_8.png]
+  Text:    CER=0.100  WER=0.125  Sim=94.74%  TokenSim=96.82%
+  Content: NumF1=92.40% (recall=85.90%, precision=100.00%, matched=79/92)  LabelRecall=89.50%
+  >>> Content Score = 91.20%
+
+[evaluation_image_9.jpg]
+  Text:    CER=0.188  WER=0.419  Sim=86.90%  TokenSim=73.77%
+  Content: NumF1=94.00% (recall=88.60%, precision=100.00%, matched=78/88)  LabelRecall=73.30%
+  >>> Content Score = 85.70%
+
+==============================================================================================================
+TỔNG KẾT
+==============================================================================================================
+Tổng: 50 files
+CER: 0.226 | WER: 0.347 | Sim: 86.06% | TokenSim: 84.05%
+Number F1: 90.22% | Label Recall: 73.63% | Content Score: 83.58%
