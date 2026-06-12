@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.resolved
+
+# Tránh push các file dự đoán OCR rác
+evaluation/ocr/data/**/*.pred.md
+evaluation/ocr/textforge_ocr_predictions/**/*.pred.md
+*.md
