@@ -360,6 +360,15 @@ class IngestionPipeline:
 
         # Nếu OpenCV tìm thấy bảng nhưng VLM hoàn toàn không dựng bảng (rã thành text)
         if not vlm_tables and reconstructed_tables:
+            # P0 Fix: Kiểm tra xem VLM đã rã bảng thành bullet list có data chưa.
+            # Nếu VLM đã trả bullet list có chứa số liệu → tin tưởng VLM, KHÔNG đắp thêm bảng rác.
+            vlm_has_structured_data = self._vlm_has_bullet_data(vlm_markdown)
+            if vlm_has_structured_data:
+                logger.info(
+                    "[Table Validator] VLM rã bảng thành bullet list có data. "
+                    "Giữ nguyên output VLM, bỏ qua reconstructed_table."
+                )
+                return vlm_markdown
             fallback_md = "\n\n"
             for table in reconstructed_tables:
                 fallback_md += self._tables_to_markdown([table]) + "\n\n"
@@ -392,6 +401,22 @@ class IngestionPipeline:
                 )
 
         return final_markdown
+
+    def _vlm_has_bullet_data(self, markdown: str) -> bool:
+        """Kiểm tra VLM đã rã bảng thành bullet list có chứa số liệu/data thực chưa.
+
+        Nếu True → VLM đã nỗ lực trích xuất data dạng `- Label: value`,
+        không cần đắp thêm reconstructed_table (chỉ gây nhiễu).
+        """
+        lines = markdown.split("\n")
+        bullet_lines_with_data = 0
+        for line in lines:
+            stripped = line.strip()
+            # Dòng bullet có chứa số liệu (ít nhất 1 con số)
+            if (stripped.startswith("-") or stripped.startswith("*")) and re.search(r"\d", stripped):
+                bullet_lines_with_data += 1
+        # Nếu có ≥ 5 dòng bullet chứa số → VLM đã rã bảng thành cấu trúc có data
+        return bullet_lines_with_data >= 5
 
 
     def _cleanup_markdown_for_rag(self, markdown: str, ocr_blocks: list[OCRBlock]) -> tuple[str, list[str]]:
@@ -447,6 +472,13 @@ class IngestionPipeline:
 
         cleaned_text = "\n".join(cleaned_lines).strip()
 
+        # P0 Fix: Dedup Repetition — VLM đôi khi lặp toàn bộ nội dung nhiều lần
+        # (ví dụ: sao kê ngân hàng 8 cột → lặp 5 lần, từ 2.4KB → 12KB)
+        deduped_text, dedup_count = self._dedup_repeated_blocks(cleaned_text)
+        if dedup_count > 0:
+            warnings.append(f"VLM repetition loop: đã xóa {dedup_count} khối nội dung bị lặp.")
+            cleaned_text = deduped_text
+
         # Kiểm tra xem có bảng markdown hợp lệ không
         has_table = "|" in cleaned_text and "---" in cleaned_text
 
@@ -461,6 +493,59 @@ class IngestionPipeline:
                     cleaned_text = rebuilt.strip()
 
         return cleaned_text, warnings
+
+    def _dedup_repeated_blocks(self, text: str, min_block_chars: int = 200) -> tuple[str, int]:
+        """Phát hiện và loại bỏ các khối nội dung bị VLM lặp lại (repetition loop).
+
+        Thuật toán:
+          1. Chia text thành các khối bằng heading (# ...) hoặc dòng trống kép.
+          2. Nếu một khối ≥ min_block_chars ký tự xuất hiện ≥ 2 lần → giữ bản đầu, xóa bản sau.
+
+        Returns:
+            (text_đã_dedup, số_khối_bị_xóa)
+        """
+        # Chia thành các section bởi heading markdown
+        sections = re.split(r'(?=^# )', text, flags=re.MULTILINE)
+        if len(sections) <= 1:
+            # Không có heading → thử chia bằng dòng trống kép
+            sections = re.split(r'\n\n\n+', text)
+
+        if len(sections) <= 1:
+            return text, 0
+
+        seen_fingerprints: dict[str, int] = {}
+        unique_sections: list[str] = []
+        removed_count = 0
+
+        for section in sections:
+            stripped = section.strip()
+            if not stripped:
+                continue
+
+            # Fingerprint: chuẩn hóa whitespace để so sánh
+            fingerprint = re.sub(r'\s+', ' ', stripped).strip()
+
+            if len(fingerprint) < min_block_chars:
+                # Khối quá ngắn → giữ nguyên (không dedup khối nhỏ)
+                unique_sections.append(section)
+                continue
+
+            if fingerprint in seen_fingerprints:
+                # Đã thấy khối này → xóa bản lặp
+                removed_count += 1
+                logger.warning(
+                    f"[Dedup] Xóa khối lặp ({len(fingerprint)} chars), "
+                    f"bản gốc ở section #{seen_fingerprints[fingerprint]}"
+                )
+                continue
+
+            seen_fingerprints[fingerprint] = len(unique_sections) + 1
+            unique_sections.append(section)
+
+        if removed_count == 0:
+            return text, 0
+
+        return "\n\n".join(unique_sections).strip(), removed_count
 
     def _rebuild_markdown_from_ocr(self, ocr_blocks: list[OCRBlock]) -> str:
         """Dựng lại markdown tuyến tính từ OCR blocks đã sắp theo vị trí."""

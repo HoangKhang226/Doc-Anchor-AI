@@ -1,0 +1,162 @@
+# 🔍 OCR4RAG — Phân tích kiến trúc & Đánh giá Requirements
+
+## 1. Tổng quan Project
+
+**OCR4RAG** (tên nội bộ: FinSight AI) là một **OCR Ingestion Pipeline** chuyển đổi tài liệu thô (ảnh chụp, scan, PDF) thành Markdown có cấu trúc, sẵn sàng nạp vào hệ thống RAG. **Project này CHỈ LÀM OCR, không có RAG**.
+
+> [!IMPORTANT]
+> Dù `setting.yaml` và `requirements.txt` có khai báo cả Indexing, Retrieval, Agentic Reasoning, Backend — nhưng **code thực tế chỉ có module `src/ingestion/`** (OCR pipeline). Các tầng 2, 3, 4 chưa được triển khai.
+
+---
+
+## 2. Kiến trúc thực tế (chỉ tầng OCR)
+
+```mermaid
+flowchart TD
+    A["File đầu vào\n(.png/.jpg/.pdf)"] --> B["DocumentClassifier\n(classifier.py)"]
+    
+    B -->|DIGITAL_PDF| C["DocumentParser\n(Docling)"]
+    B -->|CAMERA_PHOTO| D["ImagePreprocessor\n(OpenCV: CLAHE + Deskew)"]
+    
+    D --> E["PaddleOCRExtractor\n→ list[OCRBlock]"]
+    
+    E --> F["LayoutRouter\n(routing/layout_router.py)"]
+    F -->|LayoutRoute| G["build_financial_extraction_prompt\n(prompts/)"]
+    E --> G
+    
+    D --> H["TableRegionDetector\n(OpenCV Morphology)"]
+    H --> I["reconstruct_tables_from_ocr\n(table_reconstruction.py)"]
+    E --> I
+    
+    G --> J["VLMOCRProcessor\n(Qwen2.5-VL qua Ollama)"]
+    D --> J
+    
+    J --> K["_normalize_markdown\n+ _cleanup_markdown_for_rag"]
+    I --> K
+    
+    K --> L["ExtractionResult"]
+    L --> M["save_outputs()\n→ .md + .json"]
+    
+    C --> L
+```
+
+### Luồng xử lý chính (Image Path — 9 Phase):
+
+| Phase | Tên | Module | Chức năng |
+|-------|-----|--------|-----------|
+| 1 | Classification | `classifier.py` | Phân loại: PDF digital vs Ảnh (hiện ép toàn bộ ảnh → CAMERA_PHOTO) |
+| 2 | Preprocessing | `image_preprocessor.py` | CLAHE brightness + Deskew (OpenCV) |
+| 3 | OCR Extraction | `extractors/paddle_ocr_extractor.py` | PaddleOCR 2.x/3.x → `list[OCRBlock]` |
+| 4 | Layout Analysis | `routing/layout_router.py` | Auto-route: critical_fail / noisy_scan / table_rich / clean_text / mixed_layout |
+| 5 | VLM Extraction | `vlm_ocr.py` + `prompts/vlm_prompts.py` | Qwen2.5-VL 7B sinh Markdown từ ảnh + OCR context |
+| 6 | Table Detection | `table_region_detection.py` + `table_reconstruction.py` | OpenCV morphology → bbox bảng → dựng lại bảng từ OCR blocks |
+| 7 | Normalization | `pipeline.py` | Cleanup markdown: table spacing, hard breaks, stitch broken pipes |
+| 8 | Validation | `pipeline.py` | OpenCV-VLM Table Validator + quality scoring |
+| 9 | Output | `pipeline.py` | Lưu `{stem}.md` + `{stem}.json` vào `data/processed/` |
+
+---
+
+## 3. Cấu trúc file thực tế
+
+```
+OCR4RAG/
+├── .env.example                     # Ollama + LangSmith config
+├── requirements.txt                 # Dependencies
+├── config/
+│   ├── setting.yaml                 # Config chính (LLM, RAG, Storage)
+│   └── logging.yaml                 # Logging dictConfig
+├── src/
+│   ├── __init__.py
+│   ├── config.py                    # Singleton Settings đọc setting.yaml
+│   ├── core/
+│   │   ├── llm_factory.py           # get_text_llm(), get_vlm() via ChatOllama
+│   │   ├── relational_db.py         # SQLAlchemy engine/session (SQLite)
+│   │   └── vector_db.py             # Qdrant client (local mode)
+│   └── ingestion/                   # ⭐ MODULE DUY NHẤT CÓ CODE THỰC
+│       ├── pipeline.py              # IngestionPipeline orchestrator (633 dòng)
+│       ├── classifier.py            # DocumentClassifier (InputType enum)
+│       ├── document_parser.py       # Docling PDF parser
+│       ├── image_preprocessor.py    # OpenCV CLAHE + Deskew
+│       ├── vlm_ocr.py               # VLMOCRProcessor (Qwen2.5-VL)
+│       ├── table_reconstruction.py  # Heuristic table từ OCR bbox (657 dòng)
+│       ├── table_region_detection.py # OpenCV morphology table detector
+│       ├── extractors/
+│       │   └── paddle_ocr_extractor.py  # PaddleOCR 2.x/3.x wrapper
+│       ├── prompts/
+│       │   └── vlm_prompts.py       # Language-agnostic VLM prompts
+│       ├── routing/
+│       │   └── layout_router.py     # LayoutRouter (Decision Tree)
+│       ├── schemas/
+│       │   └── extraction_result.py # OCRBlock, ExtractedTable, ExtractionResult
+│       └── README.md                # Tài liệu kiến trúc chi tiết
+└── evaluation/ocr/                  # Benchmark OCR
+    ├── data/                        # 3 tập: cord_v2, custom_finsight, sroie
+    ├── scripts/
+    │   ├── run_ocr_eval.py          # Chạy benchmark
+    │   └── score_only.py            # Tính CER/WER/Sim/TokenSim
+    └── docs/evaluate.md             # Tài liệu thuật toán chấm điểm
+```
+
+---
+
+## 4. Đánh giá Requirements — Thiếu & Thừa
+
+### ✅ Libs ĐANG DÙNG thực tế trong code:
+
+| Lib | File sử dụng | Có trong requirements? |
+|-----|--------------|----------------------|
+| `PyYAML` | `config.py` | ✅ |
+| `docling` | `document_parser.py` | ✅ |
+| `paddleocr` | `paddle_ocr_extractor.py` | ✅ |
+| `paddlepaddle` | (backend của paddleocr) | ✅ |
+| `opencv-python` (cv2) | `image_preprocessor.py`, `table_region_detection.py` | ❌ **THIẾU** |
+| `numpy` | `image_preprocessor.py`, `table_region_detection.py` | ✅ |
+| `langchain-ollama` | `llm_factory.py` | ✅ |
+| `langchain-core` | `vlm_ocr.py` (HumanMessage) | ✅ |
+| `Pillow` (PIL) | `vlm_ocr.py` (_encode_image) | ❌ **THIẾU** |
+| `rapidfuzz` | (evaluation scripts) | ✅ |
+| `sqlalchemy` | `relational_db.py` | ✅ |
+
+### ❌ Libs CẦN THÊM vào requirements:
+
+| Lib | Lý do |
+|-----|-------|
+| **`opencv-python>=4.8`** | Dùng trực tiếp `cv2` trong `image_preprocessor.py`, `table_region_detection.py` |
+| **`Pillow>=10.0`** | Dùng `from PIL import Image` trong `vlm_ocr.py` để convert WebP → JPEG |
+
+### ⚠️ Libs THỪA (chưa có code sử dụng):
+
+| Lib | Lý do thừa |
+|-----|-----------|
+| `pydantic>=2.0` | Không có file nào import pydantic |
+| `pydantic-settings>=2.0` | Không có file nào import pydantic_settings |
+| `python-dotenv>=1.0.0` | Không có `load_dotenv()` trong code |
+| `pymupdf>=1.24` | Không có import nào (dùng Docling thay thế) |
+| `pdfplumber>=0.11` | Không có import nào |
+| `python-dateutil>=2.9` | Không có import nào |
+| `kornia>=0.7` | Không có import nào |
+| `llama-index>=0.12` | Tầng Retrieval chưa triển khai |
+| `qdrant-client>=1.12` | Có code `vector_db.py` nhưng **chưa được gọi** từ pipeline chính |
+| `sentence-transformers>=3.0` | Tầng Retrieval chưa triển khai |
+| `rank-bm25>=0.2` | Tầng Retrieval chưa triển khai |
+| `langgraph>=0.4` | Tầng Agentic chưa triển khai |
+| `langchain-text-splitters>=0.3` | Tầng chunking chưa triển khai |
+| `fastapi>=0.115` | Tầng Backend chưa triển khai |
+| `uvicorn>=0.34` | Tầng Backend chưa triển khai |
+| `sse-starlette>=2.0` | Tầng Backend chưa triển khai |
+| `python-multipart>=0.0.9` | Tầng Backend chưa triển khai |
+| `alembic>=1.14` | Tầng Database migration chưa triển khai |
+| `langsmith>=0.3` | Tầng Observability chưa dùng |
+
+> [!NOTE]
+> Các lib "thừa" không gây hại, chúng được khai báo trước cho các tầng sẽ triển khai sau. Nhưng nếu muốn **requirements sạch** chỉ cho OCR, nên tách ra `requirements-ocr.txt`.
+
+---
+
+## 5. Tóm tắt
+
+- **Project là OCR pipeline thuần túy**, chuyển ảnh/scan/PDF → Markdown cho RAG
+- **Core stack**: PaddleOCR + OpenCV + Qwen2.5-VL (qua Ollama) + Docling
+- **2 lib bị thiếu trong requirements**: `opencv-python` và `Pillow`
+- **~17 lib thừa** (dành cho các tầng chưa triển khai)
+- Code quality tốt, có README chi tiết, có evaluation benchmark
