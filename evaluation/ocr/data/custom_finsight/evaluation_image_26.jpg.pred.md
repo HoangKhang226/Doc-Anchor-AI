@@ -1,6 +1,0 @@
-Ice Lemon Tea 13,636
-Gyro Platter -Reoular 50,000
-Subtotal 63,636
-PB1-TAXTax 6,364
-For Here Total 70,000
-Cash 70,000

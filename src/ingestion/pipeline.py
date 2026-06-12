@@ -422,7 +422,13 @@ class IngestionPipeline:
     def _cleanup_markdown_for_rag(self, markdown: str, ocr_blocks: list[OCRBlock]) -> tuple[str, list[str]]:
         """Làm sạch markdown đầu ra để giảm bullet spam và noise OCR trước khi nạp RAG."""
         warnings: list[str] = []
-        text = markdown.replace("\r\n", "\n").replace("\r", "\n")
+        
+        # P2 Fix: Xóa tag rác do VLM tự sinh khi gặp khoảng trống
+        text = markdown.replace("[uncertain:]", "").replace("[uncertain]", "")
+        # Thu gọn dấu chấm dài (VLM hay bị ảo giác vẽ dấu chấm)
+        text = re.sub(r'\.{4,}', '...', text)
+        
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
         raw_lines = [line.strip() for line in text.split("\n")]
         
         lines = []
@@ -531,12 +537,28 @@ class IngestionPipeline:
                 continue
 
             if fingerprint in seen_fingerprints:
-                # Đã thấy khối này → xóa bản lặp
+                # Đã thấy khối này (khớp hoàn toàn) → xóa bản lặp
                 removed_count += 1
                 logger.warning(
                     f"[Dedup] Xóa khối lặp ({len(fingerprint)} chars), "
                     f"bản gốc ở section #{seen_fingerprints[fingerprint]}"
                 )
+                continue
+
+            # P1 Fix: Kiểm tra lặp bị cắt đứt (cutoff) do EOF
+            # Nếu khối hiện tại là một phần (prefix) của một khối đã thấy trước đó
+            is_cutoff_duplicate = False
+            for seen_fp, sec_idx in seen_fingerprints.items():
+                if seen_fp.startswith(fingerprint):
+                    is_cutoff_duplicate = True
+                    removed_count += 1
+                    logger.warning(
+                        f"[Dedup] Xóa khối lặp bị cắt cụt ({len(fingerprint)} chars), "
+                        f"bản gốc ở section #{sec_idx}"
+                    )
+                    break
+            
+            if is_cutoff_duplicate:
                 continue
 
             seen_fingerprints[fingerprint] = len(unique_sections) + 1
