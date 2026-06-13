@@ -88,26 +88,40 @@ def eval_table_logic(gt: str, pred: str) -> dict:
     return base_metrics
 
 def extract_key_values(md_text: str) -> dict[str, str]:
-    """Trích xuất cặp Key-Value từ định dạng **Key**: Value hoặc - Key: Value"""
+    """Trích xuất cặp Key-Value từ mọi định dạng (Bullet, Bold, Table, Flat)"""
     kv_pairs = {}
-    # Match: **Key**: Value OR - Key: Value OR * Key: Value
-    pattern = r'(?:\*\*([^*]+)\*\*\s*:\s*(.+))|(?:[-*]\s*([^:\n]+)\s*:\s*(.+))'
-    for match in re.finditer(pattern, md_text):
+    
+    # 1. Quét theo Regex cho các format có cấu trúc (Bullet, Bold)
+    pattern_structured = r'(?:\*\*([^*]+)\*\*\s*:\s*(.+))|(?:[-*]\s*([^:\n]+)\s*:\s*(.+))'
+    for match in re.finditer(pattern_structured, md_text):
         if match.group(1): # Pattern 1
             key, val = match.group(1), match.group(2)
         else: # Pattern 2
             key, val = match.group(3), match.group(4)
         kv_pairs[normalize_text(key)] = normalize_text(val)
         
-    # Phục hồi KIE cho form phẳng (Ground Truth thường không có bullet/bold)
-    # Ví dụ: "Tên đơn vị vay vốn: ABC"
-    pattern_flat = r'^([^:.\n]+)\s*:\s*(.*)$'
-    for match in re.finditer(pattern_flat, md_text, re.MULTILINE):
-        key = normalize_text(match.group(1))
-        val = normalize_text(match.group(2))
-        if key and key not in kv_pairs and len(key.split()) < 10:  # Key thường không quá dài
-            kv_pairs[key] = val
+    # 2. Xử lý các dòng phẳng (Flat Text), dải chấm, hoặc ô trong Table
+    # Thay thế | và dải dấu chấm thành khoảng trắng lớn
+    text_cleaned = re.sub(r'\|', '  ', md_text)
+    text_cleaned = re.sub(r'\.{3,}', '  ', text_cleaned)
+    
+    # Tách thành các block dựa trên xuống dòng hoặc khoảng trắng kép
+    segments = re.split(r'\n|\s{2,}', text_cleaned)
+    
+    for segment in segments:
+        segment = segment.strip()
+        if not segment or ':' not in segment:
+            continue
             
+        parts = segment.split(':', 1)
+        if len(parts) == 2:
+            key = normalize_text(parts[0])
+            val = normalize_text(parts[1])
+            
+            # Bỏ qua các key nhiễu (quá dài hoặc trống)
+            if key and len(key.split()) < 15 and key not in kv_pairs:
+                kv_pairs[key] = val
+                
     return kv_pairs
 
 def eval_form_logic(gt: str, pred: str) -> dict:
@@ -122,16 +136,32 @@ def eval_form_logic(gt: str, pred: str) -> dict:
     elif not gt_kvs or not pred_kvs:
         kie_f1 = 0.0
     else:
-        # Tính điểm dựa trên Key khớp và Value khớp
+        # Tính điểm dựa trên Key khớp và Value khớp (Fuzzy matching cho cả Key và Value)
         matched_keys = 0
         matched_full = 0
-        for k, v in pred_kvs.items():
-            if k in gt_kvs:
+        
+        # Tạo bản copy để không match 1 key nhiều lần
+        available_gt_kvs = gt_kvs.copy()
+        
+        for pred_k, pred_v in pred_kvs.items():
+            best_match_k = None
+            best_score = 0
+            
+            # Tìm key trong GT giống nhất (Fuzzy Match > 85% để chịu lỗi gõ sai của người dán nhãn)
+            for gt_k in available_gt_kvs.keys():
+                score = fuzz.ratio(pred_k, gt_k)
+                if score > best_score:
+                    best_score = score
+                    best_match_k = gt_k
+                    
+            if best_score > 85 and best_match_k is not None:
                 matched_keys += 1
                 # Nếu value khớp > 80% thì coi như lấy đúng
-                if fuzz.ratio(v, gt_kvs[k]) > 80:
+                if fuzz.ratio(pred_v, available_gt_kvs[best_match_k]) > 80:
                     matched_full += 1
-                    
+                # Xóa key đã match để tránh duplicate
+                del available_gt_kvs[best_match_k]
+                
         precision = matched_full / len(pred_kvs) if pred_kvs else 0.0
         recall = matched_full / len(gt_kvs) if gt_kvs else 0.0
         
