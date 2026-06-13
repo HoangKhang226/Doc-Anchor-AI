@@ -8,7 +8,7 @@ PyYAML>=6.0
 
 # Tầng: Ingestion & Layout Parsing
 numpy==1.26.4
-opencv-python>=4.8
+opencv-python>=4.6.0
 Pillow>=10.0
 kornia>=0.7
 rapidfuzz>=3.9
