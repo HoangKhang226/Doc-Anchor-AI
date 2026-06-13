@@ -17,6 +17,7 @@ from evaluation_metrics import calculate_metrics_by_category
 def main():
     parser = argparse.ArgumentParser(description="Colab OCR Evaluation Suite")
     parser.add_argument("--workers", type=int, default=1, help="Số lượng luồng chạy song song (batch processing). Khuyến nghị: 4-8 trên Colab.")
+    parser.add_argument("--backup_dir", type=str, default="", help="Thư mục sao lưu an toàn (ví dụ: Google Drive) để lưu kết quả liên tục tránh mất data khi Colab sập.")
     args = parser.parse_args()
 
     data_dir = Path("evaluation/ocr/data")
@@ -114,6 +115,18 @@ def main():
                 # Ghi file liên tục (Checkpointing)
                 with open(report_file, "w", encoding='utf-8') as f:
                     json.dump(results, f, indent=4, ensure_ascii=False)
+                    
+                # Nếu có cấu hình backup_dir (vd: Google Drive), copy thẳng qua đó luôn
+                if getattr(args, 'backup_dir', ''):
+                    import shutil
+                    backup_path = Path(args.backup_dir)
+                    backup_path.mkdir(parents=True, exist_ok=True)
+                    # Copy JSON
+                    shutil.copy(report_file, backup_path / "eval_report.json")
+                    # Copy Markdown
+                    pred_backup_dir = backup_path / dataset_name
+                    pred_backup_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(pred_path, pred_backup_dir / pred_path.name)
             
             # Xây dựng chuỗi kết quả
             log_msg = f"✅ Xong {img_id} ({latency:.2f}s) | CER: {metrics['cer']:.3f} | WER: {metrics['wer']:.3f} | Sim: {metrics['sim']:.2%}"
