@@ -41,7 +41,9 @@ def main():
     print("🔥 Đang khởi tạo (Warm-up) PaddleOCR để tải model (chống lỗi Multi-thread)...")
     try:
         from src.ingestion.extractors.paddle_ocr_extractor import PaddleOCRExtractor
+        from src.ingestion.table_region_detection import TableRegionDetector
         PaddleOCRExtractor()._load_engine()
+        TableRegionDetector()._get_engine()
         print("✅ Khởi tạo PaddleOCR thành công.")
     except Exception as e:
         print(f"⚠️ Cảnh báo khởi tạo PaddleOCR: {e}")
