@@ -220,6 +220,18 @@ def main():
         shutil.copy(txt_report_file, temp_dir / "eval_report.txt")
         if report_file.exists():
             shutil.copy(report_file, temp_dir / "eval_report.json")
+            
+        # Gom thêm toàn bộ file markdown dự đoán (.pred.md)
+        pred_dir = temp_dir / "predictions"
+        pred_dir.mkdir(exist_ok=True)
+        pred_count = 0
+        for pred_file in data_dir.rglob("*.pred.md"):
+            # Giữ nguyên cấu trúc thư mục (pure_text, forms, v.v.)
+            dest_dir = pred_dir / pred_file.parent.name
+            dest_dir.mkdir(exist_ok=True, parents=True)
+            shutil.copy(pred_file, dest_dir / pred_file.name)
+            pred_count += 1
+        print(f"   Đã gom {pred_count} file markdown dự đoán vào ZIP.")
         
         # Nén thành benchmark_results.zip
         shutil.make_archive(str(zip_path), 'zip', str(temp_dir))
