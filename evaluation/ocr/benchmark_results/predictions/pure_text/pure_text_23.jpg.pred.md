@@ -1,0 +1,37 @@
+# CÔNG AN TP ĐÀ NẴNG
+## PHÒNG CẢNH SÁT ĐTTP VỀ THAM NHŨNG, KINH TẾ, BUÔN LẬU, MÔI TRƯỜNG
+
+### CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+#### Độc lập - Tự do - Hạnh phúc
+Đà Nẵng, ngày 12 tháng 01 năm 2026  
+
+**Số:** /TB-P.CSKT-Đ1  
+
+## THÔNG BÁO
+### Về việc bán tài sản theo hình thức chỉ định
+
+Phòng Cảnh sát ĐTTP về tham nhũng, kinh tế, buôn lậu, môi trường (Phòng Cảnh sát kinh tế) Công an thành phố Đà Nẵng thông báo bán chỉ định đối với tài sản là tang vật, phương tiện vi phạm hành chính bị tịch thu. Kính mời các cá nhân, tổ chức có nhu cầu mua tài sản tham gia với nội dung cụ thể:  
+
+1. **Tên, địa chỉ của đơn vị có tài sản**  
+- Tên đơn vị: Phòng Cảnh sát kinh tế Công an thành phố Đà Nẵng.  
+- Địa chỉ: 47 Lý Tự Trọng, phường Hải Châu, thành phố Đà Nẵng.  
+- Điện thoại: 0694.260.264.  
+
+2. **Tên tài sản, số lượng, tình trạng giá khởi điểm:**  
+
+| STT | TÊN TANG VẬT, PHƯƠNG TIỆN | SỐ LƯỢNG | ĐVT | ĐẶC ĐIỂM, CHỨNG LOẠI, SỐ HIỆU, NHÂN HIỆU, KÝ HIỆU, SỐ ĐĂNG KÝ (NEU CÓ), XUẤT XỨ (NEU CÓ), TÌNH TRẠNG | GHI CHÚ |
+| --- | -------------------------- | -------- | ---- | ----------------------------------------- | ------- |
+| 01  | Đường kính trắng            | 80       | Bao  | Nhãn hiệu MITR PHOL PURE<br>REFINED SUGAR Product of Thailand, 50 kilogram/bao |        |
+
+- Tài sản có giá trị là 64.000.000đ (Sáu mươi bốn triệu đồng).  
+
+3. **Số tiền đặt trước và hình thức nộp tiền đặt trước**  
+- Số tiền đặt trước: 6.400.000đ. (Bằng chữ: Sáu triệu bốn trăm nghìn đồng) tương đương 10% so với giá trị tài sản. Hình thức nộp tiền: Tiền mặt.  
+- Phòng Cảnh sát kinh tế Công an thành phố Đà Nẵng sẽ hoàn trả số tiền đặt trước cho cá nhân/tổ chức sau khi nộp đủ số tiền mua tài sản vào tài khoản của Công an thành phố theo quy định.  
+
+- Những trường hợp người đăng ký sau đây không được nhận lại tiền đặt trước:  
++ Người đăng ký từ chối mua tài sản sau khi được xác định là người được quyền mua tài sản.  
++ Người đăng ký được quyền mua tài sản nhưng không ký hợp đồng mua bán tài sản trong thời hạn quy định.  
++ Người đăng ký được quyền mua tài sản đã ký hợp đồng mua bán tài sản nhưng không thanh toán tiền mua tài sản hoặc đã thanh toán tiền mua tài sản nhưng không nhận tài sản.  
+
+4. **Quy định về người không tham gia mua tài sản**

@@ -1,6 +1,14 @@
 """
-Doc Anchor AI — Chart Region Detection
-Dùng morphology OpenCV kết hợp với trừu tượng hóa để cô lập biểu đồ.
+Doc Anchor AI — Chart Region Detection v2.0
+============================================
+Phiên bản viết lại hoàn toàn, khắc phục 9 lỗi chí mạng của v1.0.
+
+Thiết kế mới:
+- Dynamic Scaling: Mọi ngưỡng dựa trên % kích thước ảnh, không hardcode pixel.
+- Rotated Bounding Box: Dùng minAreaRect thay vì boundingRect để chống nghiêng.
+- Smart Masking: Chỉ mask text NGOÀI vùng biểu đồ tiềm năng, tránh phá hủy cấu trúc.
+- Multi-scale Morphology: Dùng 2 lượt kernel (nhỏ + lớn) để bắt cả chart mở và chart đặc.
+- Cascade-safe: Giảm phụ thuộc vào upstream (Table/OCR) bằng dual-pass detection.
 """
 
 from __future__ import annotations
@@ -8,22 +16,109 @@ from __future__ import annotations
 import cv2
 import uuid
 import math
-from dataclasses import dataclass
+import numpy as np
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from src.config import get_logger
 from src.ingestion.schemas.extraction_result import OCRBlock
 
 logger = get_logger(__name__)
 
+
+# ============================================================================
+# Data Classes
+# ============================================================================
+
 @dataclass
 class ChartRegion:
-    bbox: tuple[int, int, int, int]
+    """Vùng biểu đồ được phát hiện."""
+    bbox: tuple[int, int, int, int]  # (x1, y1, x2, y2) axis-aligned
+    rotated_bbox: Any = None         # cv2.minAreaRect result (nếu có)
     score: float = 1.0
+    detection_method: str = "morphology"
 
+
+# ============================================================================
+# Helper: Trích xuất bbox an toàn từ OCRBlock (chống crash đa format)
+# ============================================================================
+
+def _safe_bbox(block: OCRBlock) -> tuple[int, int, int, int] | None:
+    """Trả về (x1, y1, x2, y2) từ OCRBlock.bbox, hoặc None nếu lỗi."""
+    bbox = getattr(block, "bbox", None)
+    if not bbox:
+        return None
+    try:
+        if isinstance(bbox[0], (list, tuple)) and len(bbox[0]) >= 2:
+            xs = [int(p[0]) for p in bbox]
+            ys = [int(p[1]) for p in bbox]
+            return min(xs), min(ys), max(xs), max(ys)
+        elif len(bbox) == 4 and isinstance(bbox[0], (int, float)):
+            return int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+    except Exception:
+        pass
+    return None
+
+
+# ============================================================================
+# Helper: Tính IoU giữa 2 hộp
+# ============================================================================
+
+def _iou(a: tuple, b: tuple) -> float:
+    ix1 = max(a[0], b[0])
+    iy1 = max(a[1], b[1])
+    ix2 = min(a[2], b[2])
+    iy2 = min(a[3], b[3])
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    inter = (ix2 - ix1) * (iy2 - iy1)
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    union = area_a + area_b - inter
+    return inter / max(1.0, union)
+
+
+def _intersection_ratio(inner: tuple, outer: tuple) -> float:
+    """Tỉ lệ diện tích phần giao so với diện tích inner."""
+    ix1 = max(inner[0], outer[0])
+    iy1 = max(inner[1], outer[1])
+    ix2 = min(inner[2], outer[2])
+    iy2 = min(inner[3], outer[3])
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    inter = (ix2 - ix1) * (iy2 - iy1)
+    area_inner = max(1, (inner[2] - inner[0]) * (inner[3] - inner[1]))
+    return inter / area_inner
+
+
+# ============================================================================
+# Main Detector
+# ============================================================================
 
 class ChartRegionDetector:
-    """Detect vùng biểu đồ bằng phương pháp loại trừ."""
+    """
+    Detect vùng biểu đồ bằng phương pháp Subtractive Morphology cải tiến.
+    
+    Khắc phục so với v1.0:
+    - [Fix Lỗi 1, 8] Dynamic kernel & thresholds dựa trên % ảnh
+    - [Fix Lỗi 5]     Smart masking: không tô đen chữ NẰM TRONG vùng chart tiềm năng
+    - [Fix Lỗi 6]     Dual-pass: pass 1 (có mask table), pass 2 (không mask) -> merge
+    - [Fix Lỗi 7]     minAreaRect cho rotated bbox + tính aspect ratio chính xác
+    - [Fix Lỗi 9]     Multi-scale morphology: kernel nhỏ + kernel lớn, union kết quả
+    """
+
+    # --- Cấu hình (tất cả đều là TỈ LỆ, không phải pixel) ---
+    MIN_CHART_AREA_RATIO = 0.025       # Biểu đồ tối thiểu 2.5% diện tích ảnh
+    MAX_ASPECT_RATIO = 10.0            # Tỉ lệ dài/ngắn tối đa (loại đường kẻ)
+    MIN_DIMENSION_RATIO = 0.04         # Cạnh ngắn nhất tối thiểu 4% cạnh dài ảnh
+    TEXT_DENSITY_THRESHOLD = 0.35      # Mật độ chữ tối đa 35% -> vẫn là chart
+    TEXT_CHAR_THRESHOLD_RATIO = 0.15   # Tối đa 15% ký tự so với tổng ký tự toàn ảnh
+    HEADER_Y_RATIO = 0.06             # Vùng header: 6% chiều cao ảnh tính từ trên
+    HEADER_H_RATIO = 0.08             # Chiều cao tối đa header: 8% ảnh
+    KERNEL_SMALL_RATIO = 0.012        # Kernel nhỏ: 1.2% cạnh dài ảnh
+    KERNEL_LARGE_RATIO = 0.025        # Kernel lớn: 2.5% cạnh dài ảnh
+    TABLE_OVERLAP_THRESHOLD = 0.30    # Ngưỡng overlap với bảng để loại
 
     def detect(
         self,
@@ -31,7 +126,7 @@ class ChartRegionDetector:
         ocr_blocks: list[OCRBlock],
         table_bboxes: list[tuple[int, int, int, int]] | None = None,
     ) -> list[ChartRegion]:
-        """Trả về danh sách vùng biểu đồ."""
+        """Entry point: Phát hiện vùng biểu đồ từ ảnh đã cleaned."""
         table_bboxes = table_bboxes or []
         path = str(image_path)
         image = cv2.imread(path)
@@ -39,128 +134,307 @@ class ChartRegionDetector:
             logger.warning(f"Không thể đọc ảnh để detect biểu đồ: {path}")
             return []
 
-        # 1. Tìm contours lớn
         img_h, img_w = image.shape[:2]
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        thresh = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 2
-        )
-        
-        # Xóa đen các vùng đã được nhận diện là Bảng để không dính vào Biểu đồ
-        for tx1, ty1, tx2, ty2 in table_bboxes:
-            cv2.rectangle(thresh, (max(0, tx1-5), max(0, ty1-5)), (min(img_w, tx2+5), min(img_h, ty2+5)), 0, -1)
-            
-        # Xóa đen toàn bộ chữ (OCR Blocks) để chữ không làm "keo dính" các biểu đồ hoặc dính vào đoạn văn
-        for b in ocr_blocks:
-            if not getattr(b, "bbox", None): continue
-            try:
-                if isinstance(b.bbox[0], (list, tuple)) and len(b.bbox[0]) >= 2:
-                    bx1 = int(min(p[0] for p in b.bbox))
-                    bx2 = int(max(p[0] for p in b.bbox))
-                    by1 = int(min(p[1] for p in b.bbox))
-                    by2 = int(max(p[1] for p in b.bbox))
-                elif len(b.bbox) == 4 and isinstance(b.bbox[0], (int, float)):
-                    bx1, by1, bx2, by2 = int(b.bbox[0]), int(b.bbox[1]), int(b.bbox[2]), int(b.bbox[3])
-                else:
-                    continue
-                cv2.rectangle(thresh, (bx1, by1), (bx2, by2), 0, -1)
-            except Exception:
-                pass
+        img_area = img_h * img_w
+        max_dim = max(img_h, img_w)
 
-        # Dùng kernel to hơn để nối các nét rời rạc của biểu đồ (ví dụ các cột bar chart)
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
-        morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-        
-        contours, _ = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        img_area = img_w * img_h
-        min_chart_area = img_area * 0.03  # Tối thiểu 3% diện tích ảnh
-        
-        chart_regions = []
+        # Tính toán tất cả ngưỡng động (Dynamic Thresholds)
+        thresholds = self._compute_dynamic_thresholds(img_h, img_w, max_dim, img_area)
+
+        # Tổng ký tự toàn ảnh (dùng để normalize char_count)
+        total_chars = sum(len(b.text.strip()) for b in ocr_blocks if hasattr(b, 'text'))
+
+        # Nhị phân hóa ảnh
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        binary = cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV, 15, 2
+        )
+
+        # ================================================================
+        # PASS 1: Subtractive (có mask Table + Text) — bắt chart chuẩn
+        # ================================================================
+        pass1_binary = binary.copy()
+
+        # Mask bảng biểu
+        for tx1, ty1, tx2, ty2 in table_bboxes:
+            pad = int(max_dim * 0.005)
+            cv2.rectangle(
+                pass1_binary,
+                (max(0, tx1 - pad), max(0, ty1 - pad)),
+                (min(img_w, tx2 + pad), min(img_h, ty2 + pad)),
+                0, -1
+            )
+
+        # Smart masking chữ: CHỈ mask text ở NGOÀI vùng chart tiềm năng
+        # Bước này tránh Lỗi 5 (Over-masking phá hủy cấu trúc chart)
+        # Trước tiên detect sơ bộ các vùng đồ họa lớn TRƯỚC khi mask text
+        preliminary_regions = self._find_large_graphic_regions(
+            pass1_binary, thresholds
+        )
+        for b in ocr_blocks:
+            bb = _safe_bbox(b)
+            if bb is None:
+                continue
+            # Kiểm tra: text block này có nằm trong vùng đồ họa lớn nào không?
+            inside_chart = any(
+                _intersection_ratio(bb, pr) > 0.7
+                for pr in preliminary_regions
+            )
+            if not inside_chart:
+                # Text ở ngoài vùng chart -> mask an toàn
+                cv2.rectangle(pass1_binary, (bb[0], bb[1]), (bb[2], bb[3]), 0, -1)
+
+        pass1_candidates = self._detect_from_binary(
+            pass1_binary, thresholds, img_h, img_w, "pass1_subtractive"
+        )
+
+        # ================================================================
+        # PASS 2: Additive (KHÔNG mask gì cả) — bắt chart bị sót do Lỗi 6
+        # ================================================================
+        pass2_candidates = self._detect_from_binary(
+            binary.copy(), thresholds, img_h, img_w, "pass2_raw"
+        )
+
+        # ================================================================
+        # MERGE: Gộp kết quả 2 pass, ưu tiên pass1
+        # ================================================================
+        all_candidates = list(pass1_candidates)
+        for c2 in pass2_candidates:
+            # Chỉ thêm candidate từ pass2 nếu nó không trùng với pass1
+            is_duplicate = any(
+                _iou(c2.bbox, c1.bbox) > 0.3 for c1 in all_candidates
+            )
+            if not is_duplicate:
+                all_candidates.append(c2)
+
+        # ================================================================
+        # FILTER: Áp dụng bộ lọc Heuristics thông minh
+        # ================================================================
+        filtered = self._apply_heuristic_filters(
+            all_candidates, ocr_blocks, table_bboxes,
+            thresholds, total_chars, img_h, img_w
+        )
+
+        # Loại bỏ hộp lồng nhau
+        final = self._remove_nested(filtered)
+
+        logger.info(
+            f"Chart Detection v2.0: {len(final)} region(s) "
+            f"[pass1={len(pass1_candidates)}, pass2={len(pass2_candidates)}, "
+            f"merged={len(all_candidates)}, filtered={len(filtered)}] "
+            f"from: {path}"
+        )
+        return final
+
+    # ====================================================================
+    # Tính ngưỡng động
+    # ====================================================================
+
+    def _compute_dynamic_thresholds(
+        self, img_h: int, img_w: int, max_dim: int, img_area: int
+    ) -> dict:
+        """Tính toàn bộ ngưỡng dựa trên kích thước ảnh."""
+        kernel_small = max(5, int(max_dim * self.KERNEL_SMALL_RATIO))
+        kernel_large = max(11, int(max_dim * self.KERNEL_LARGE_RATIO))
+        # Đảm bảo kernel là số lẻ (yêu cầu của OpenCV morphology)
+        kernel_small = kernel_small | 1
+        kernel_large = kernel_large | 1
+
+        return {
+            "min_area": int(img_area * self.MIN_CHART_AREA_RATIO),
+            "min_dim": int(max_dim * self.MIN_DIMENSION_RATIO),
+            "header_y": int(img_h * self.HEADER_Y_RATIO),
+            "header_h": int(img_h * self.HEADER_H_RATIO),
+            "kernel_small": kernel_small,
+            "kernel_large": kernel_large,
+            "img_area": img_area,
+        }
+
+    # ====================================================================
+    # Tìm vùng đồ họa lớn sơ bộ (dùng cho Smart Masking)
+    # ====================================================================
+
+    def _find_large_graphic_regions(
+        self, binary: np.ndarray, thresholds: dict
+    ) -> list[tuple[int, int, int, int]]:
+        """Tìm nhanh các vùng đồ họa lớn TRƯỚC khi mask text.
+        Dùng kernel lớn để gom nhanh, chỉ lấy các khối siêu to."""
+        k = thresholds["kernel_large"]
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+        morphed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+        contours, _ = cv2.findContours(
+            morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        regions = []
+        min_area = thresholds["min_area"] * 2  # 2x ngưỡng thông thường
         for c in contours:
             x, y, w, h = cv2.boundingRect(c)
-            area = w * h
-            
-            if area < min_chart_area:
+            if w * h >= min_area:
+                regions.append((x, y, x + w, y + h))
+        return regions
+
+    # ====================================================================
+    # Core: Detect contours từ binary image
+    # ====================================================================
+
+    def _detect_from_binary(
+        self,
+        binary: np.ndarray,
+        thresholds: dict,
+        img_h: int,
+        img_w: int,
+        method_name: str,
+    ) -> list[ChartRegion]:
+        """Multi-scale morphology: chạy 2 kernel rồi union kết quả.
+        [Fix Lỗi 9]: Kernel nhỏ bắt chart đặc, kernel lớn bắt chart mở."""
+        candidates = []
+
+        for kernel_key in ("kernel_small", "kernel_large"):
+            k = thresholds[kernel_key]
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, k))
+            morphed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            contours, _ = cv2.findContours(
+                morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            for c in contours:
+                area = cv2.contourArea(c)
+                if area < thresholds["min_area"]:
+                    continue
+
+                # [Fix Lỗi 7]: Dùng minAreaRect để có rotated bbox chính xác
+                rotated_rect = cv2.minAreaRect(c)
+                (cx, cy), (rw, rh), angle = rotated_rect
+                # Chuẩn hóa: rw luôn là cạnh dài, rh là cạnh ngắn
+                long_side = max(rw, rh)
+                short_side = min(rw, rh)
+
+                # Lọc cạnh quá bé
+                if short_side < thresholds["min_dim"]:
+                    continue
+
+                # [Fix Lỗi 7 cont.]: Tính aspect ratio từ rotated box (chống nghiêng)
+                aspect = long_side / max(1.0, short_side)
+                if aspect > self.MAX_ASPECT_RATIO:
+                    continue
+
+                # Lấy axis-aligned bbox để dùng cho downstream
+                x, y, w, h = cv2.boundingRect(c)
+                bbox = (
+                    max(0, x),
+                    max(0, y),
+                    min(img_w, x + w),
+                    min(img_h, y + h),
+                )
+
+                # Kiểm tra trùng lặp trong cùng pass
+                is_dup = any(
+                    _iou(bbox, existing.bbox) > 0.5 for existing in candidates
+                )
+                if not is_dup:
+                    candidates.append(ChartRegion(
+                        bbox=bbox,
+                        rotated_bbox=rotated_rect,
+                        detection_method=f"{method_name}_{kernel_key}",
+                    ))
+
+        return candidates
+
+    # ====================================================================
+    # Heuristic Filters (tất cả dùng tỉ lệ, không hardcode pixel)
+    # ====================================================================
+
+    def _apply_heuristic_filters(
+        self,
+        candidates: list[ChartRegion],
+        ocr_blocks: list[OCRBlock],
+        table_bboxes: list[tuple],
+        thresholds: dict,
+        total_chars: int,
+        img_h: int,
+        img_w: int,
+    ) -> list[ChartRegion]:
+        """Áp dụng các bộ lọc thông minh để loại bỏ false positive."""
+        filtered = []
+
+        for candidate in candidates:
+            x1, y1, x2, y2 = candidate.bbox
+            area = (x2 - x1) * (y2 - y1)
+            w = x2 - x1
+            h = y2 - y1
+
+            if area < 1:
                 continue
-                
-            # 1.5 Loại trừ các hình hộp quá dẹt (đường kẻ dọc hoặc kẻ ngang)
-            if w < 60 or h < 60 or w / max(1, h) > 8 or h / max(1, w) > 8:
-                continue
-                
-            # 2. Loại trừ vùng đã bị nhận diện là bảng (IoU or Inter > 30%)
-            is_table = False
-            for tx1, ty1, tx2, ty2 in table_bboxes:
-                ix1 = max(x, tx1)
-                iy1 = max(y, ty1)
-                ix2 = min(x+w, tx2)
-                iy2 = min(y+h, ty2)
-                if ix2 > ix1 and iy2 > iy1:
-                    inter_area = (ix2 - ix1) * (iy2 - iy1)
-                    if inter_area / area > 0.3 or inter_area / ((tx2-tx1)*(ty2-ty1)) > 0.3:
-                        is_table = True
-                        break
+
+            # --- Filter 1: Loại trừ vùng trùng Bảng biểu ---
+            is_table = any(
+                _intersection_ratio(candidate.bbox, tb) > self.TABLE_OVERLAP_THRESHOLD
+                or _intersection_ratio(tb, candidate.bbox) > self.TABLE_OVERLAP_THRESHOLD
+                for tb in table_bboxes
+            )
             if is_table:
                 continue
-                
-            # 3. Loại trừ vùng có mật độ text thuần cao
+
+            # --- Filter 2: Mật độ text (Dynamic) ---
             text_area = 0
             char_count = 0
             for b in ocr_blocks:
-                if not getattr(b, "bbox", None):
+                bb = _safe_bbox(b)
+                if bb is None:
                     continue
-                
-                try:
-                    if isinstance(b.bbox[0], (list, tuple)) and len(b.bbox[0]) >= 2:
-                        bx1 = int(min(p[0] for p in b.bbox))
-                        bx2 = int(max(p[0] for p in b.bbox))
-                        by1 = int(min(p[1] for p in b.bbox))
-                        by2 = int(max(p[1] for p in b.bbox))
-                    elif len(b.bbox) == 4 and isinstance(b.bbox[0], (int, float)):
-                        bx1, by1, bx2, by2 = int(b.bbox[0]), int(b.bbox[1]), int(b.bbox[2]), int(b.bbox[3])
-                    else:
-                        continue
-                except Exception:
-                    continue
-                
-                ix1 = max(x, bx1)
-                iy1 = max(y, by1)
-                ix2 = min(x+w, bx2)
-                iy2 = min(y+h, by2)
-                
-                if ix2 > ix1 and iy2 > iy1:
-                    inter_area = (ix2 - ix1) * (iy2 - iy1)
-                    block_area = (bx2 - bx1) * (by2 - by1)
-                    if block_area > 0 and inter_area / block_area > 0.5:
-                        text_area += inter_area
-                        char_count += len(b.text.strip())
-            
-            # Nếu lượng chữ quá nhiều (> 250 ký tự) hoặc chữ chiếm > 30% diện tích -> Text block
-            if text_area / area > 0.30 or char_count > 250:
+                ratio = _intersection_ratio(bb, candidate.bbox)
+                if ratio > 0.5:
+                    block_area = (bb[2] - bb[0]) * (bb[3] - bb[1])
+                    text_area += int(block_area * ratio)
+                    char_count += len(b.text.strip())
+
+            text_density = text_area / max(1, area)
+
+            # [Fix Lỗi 3 & 5]: Dùng tỉ lệ ký tự so với TOÀN ẢNH
+            # thay vì con số cứng 250
+            char_ratio = char_count / max(1, total_chars) if total_chars > 0 else 0
+            if text_density > self.TEXT_DENSITY_THRESHOLD and char_ratio > self.TEXT_CHAR_THRESHOLD_RATIO:
                 continue
-                
-            # Nếu khối nằm ở tít trên cùng (y < 80) và rất dẹt (Header/Title)
-            if y < 80 and h < 100 and w > 200:
+
+            # --- Filter 3: Header/Footer (Dynamic) ---
+            # [Fix Lỗi 1]: Dùng % chiều cao ảnh thay vì pixel
+            if y1 < thresholds["header_y"] and h < thresholds["header_h"] and w > img_w * 0.3:
                 continue
-                
-            chart_regions.append(ChartRegion(bbox=(x, y, x+w, y+h)))
-            
-        # 4. Gộp/Lọc các vùng nằm lồng nhau
-        final_regions = []
-        for r in chart_regions:
-            x1, y1, x2, y2 = r.bbox
-            is_inside = False
-            for o in chart_regions:
-                if o is r: continue
-                ox1, oy1, ox2, oy2 = o.bbox
-                if ox1 <= x1 and oy1 <= y1 and ox2 >= x2 and oy2 >= y2:
-                    is_inside = True
-                    break
+            # Footer tương tự
+            if y2 > img_h - thresholds["header_y"] and h < thresholds["header_h"] and w > img_w * 0.3:
+                continue
+
+            filtered.append(candidate)
+
+        return filtered
+
+    # ====================================================================
+    # Loại bỏ hộp lồng nhau
+    # ====================================================================
+
+    def _remove_nested(self, regions: list[ChartRegion]) -> list[ChartRegion]:
+        """Giữ lại hộp bao ngoài cùng, loại bỏ hộp con."""
+        if len(regions) <= 1:
+            return regions
+
+        final = []
+        for r in regions:
+            is_inside = any(
+                o is not r
+                and o.bbox[0] <= r.bbox[0]
+                and o.bbox[1] <= r.bbox[1]
+                and o.bbox[2] >= r.bbox[2]
+                and o.bbox[3] >= r.bbox[3]
+                for o in regions
+            )
             if not is_inside:
-                final_regions.append(r)
-                
-        logger.info(f"Detected {len(final_regions)} chart region(s) from: {path}")
-        return final_regions
+                final.append(r)
+        return final
+
+    # ====================================================================
+    # Crop & Save (giữ nguyên interface cũ)
+    # ====================================================================
 
     def crop_and_save(
         self,
@@ -172,36 +446,41 @@ class ChartRegionDetector:
         """Crop ảnh biểu đồ và lưu thành file PNG."""
         if not regions:
             return []
-            
+
         image = cv2.imread(str(image_path))
         if image is None:
             return []
-            
+
         output_dir.mkdir(parents=True, exist_ok=True)
+        img_h, img_w = image.shape[:2]
         assets = []
-        
+
         for idx, r in enumerate(regions):
             x1, y1, x2, y2 = r.bbox
-            
-            # Padding nhẹ 10px để cắt không bị sát viền
-            h, w = image.shape[:2]
-            px1 = max(0, x1 - 10)
-            py1 = max(0, y1 - 10)
-            px2 = min(w, x2 + 10)
-            py2 = min(h, y2 + 10)
-            
+
+            # Padding động (1% cạnh dài ảnh, tối thiểu 5px)
+            pad = max(5, int(max(img_h, img_w) * 0.01))
+            px1 = max(0, x1 - pad)
+            py1 = max(0, y1 - pad)
+            px2 = min(img_w, x2 + pad)
+            py2 = min(img_h, y2 + pad)
+
             crop = image[py1:py2, px1:px2]
-            filename = f"{file_stem}_chart_{idx+1}_{uuid.uuid4().hex[:6]}.png"
+            if crop.size == 0:
+                continue
+
+            filename = f"{file_stem}_chart_{idx + 1}_{uuid.uuid4().hex[:6]}.png"
             out_path = output_dir / filename
             cv2.imwrite(str(out_path), crop)
-            
+
             assets.append({
                 "index": idx + 1,
                 "filename": filename,
                 "path": str(out_path).replace("\\", "/"),
                 "bbox": [x1, y1, x2, y2],
                 "score": r.score,
-                "region_type": "chart"
+                "detection_method": r.detection_method,
+                "region_type": "chart",
             })
-            
+
         return assets

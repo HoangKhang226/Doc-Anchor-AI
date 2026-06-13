@@ -102,18 +102,104 @@ class PaddleOCRExtractor:
         logger.info(f"Bắt đầu PaddleOCR: {path.name}")
         ocr = self._load_engine()
 
-        if getattr(self, "_api_version", 3) == 3 and hasattr(ocr, "predict"):
+        # Thử gọi predict (PaddleX/V3) trước, nếu không có thì gọi ocr()
+        if hasattr(ocr, "predict"):
             raw_result = ocr.predict(str(path))
-            blocks = self._parse_paddle3_result(raw_result)
         else:
             try:
-                raw_result: list[Any] = ocr.ocr(str(path), cls=True)
+                raw_result = ocr.ocr(str(path), cls=True)
             except TypeError:
                 raw_result = ocr.ocr(str(path))
+                
+        # Determine format dynamically
+        blocks = []
+        is_v3 = False
+        
+        # Generator or list of dicts (PaddleX/V3)
+        if hasattr(raw_result, "__next__") or (isinstance(raw_result, list) and len(raw_result) > 0 and (isinstance(raw_result[0], dict) or hasattr(raw_result[0], "json"))):
+            is_v3 = True
+            
+        if is_v3:
+            blocks = self._parse_paddle3_result(raw_result)
+        else:
             blocks = self._parse_legacy_ocr_result(raw_result)
+            
+        # --- FIX FORMS KIE: GỘP CÁC KHỐI CHỮ NẰM NGANG CÙNG DÒNG ---
+        # Ngăn chặn việc Key và Value bị đứt gãy do khoảng trắng dài hoặc dấu chấm `......`
+        blocks = self._merge_horizontal_blocks(blocks)
 
-        logger.info(f"PaddleOCR hoàn tất: {len(blocks)} blocks")
+        logger.info(f"PaddleOCR hoàn tất: {len(blocks)} blocks (sau khi gộp ngang)")
         return blocks
+        
+    def _merge_horizontal_blocks(self, blocks: list[OCRBlock]) -> list[OCRBlock]:
+        """Gộp các block nằm trên cùng một dòng ngang, nối bằng khoảng trắng."""
+        if not blocks:
+            return []
+            
+        def get_cy(b):
+            return sum(p[1] for p in b.bbox) / 4.0 if b.bbox and len(b.bbox) >= 4 else 0
+            
+        def get_cx(b):
+            return sum(p[0] for p in b.bbox) / 4.0 if b.bbox and len(b.bbox) >= 4 else 0
+            
+        def get_h(b):
+            ys = [p[1] for p in b.bbox] if b.bbox and len(b.bbox) >= 4 else [0, 0]
+            return max(ys) - min(ys)
+            
+        def get_x_bounds(b):
+            xs = [p[0] for p in b.bbox] if b.bbox and len(b.bbox) >= 4 else [0, 0]
+            return min(xs), max(xs)
+
+        # Sort theo Y (top-to-bottom), trên cùng 1 dòng thì sort theo X (left-to-right)
+        # Nhóm thành các dòng (Sai số Y < 0.5 chiều cao)
+        sorted_blocks = sorted(blocks, key=lambda b: get_cy(b))
+        
+        lines = []
+        current_line = []
+        for b in sorted_blocks:
+            if not current_line:
+                current_line.append(b)
+                continue
+            prev = current_line[0]
+            # Nếu tâm Y chênh lệch quá ít (cùng dòng)
+            if abs(get_cy(b) - get_cy(prev)) < get_h(prev) * 0.6:
+                current_line.append(b)
+            else:
+                lines.append(sorted(current_line, key=lambda cb: get_cx(cb)))
+                current_line = [b]
+        if current_line:
+            lines.append(sorted(current_line, key=lambda cb: get_cx(cb)))
+            
+        merged_blocks = []
+        for line in lines:
+            if not line: continue
+            merged = line[0]
+            for next_b in line[1:]:
+                _, xmax_prev = get_x_bounds(merged)
+                xmin_next, xmax_next = get_x_bounds(next_b)
+                gap = xmin_next - xmax_prev
+                h_prev = get_h(merged)
+                
+                # Gộp nếu khoảng cách hợp lý hoặc là cùng dòng Form
+                # Ta tự động nối bằng khoảng trắng. Nếu cách rất xa (> 3 lần h), dùng " ... "
+                sep = " "
+                if gap > h_prev * 3:
+                    sep = " ... "
+                    
+                new_bbox = [
+                    [min(p[0] for p in merged.bbox), min(p[1] for p in merged.bbox)],
+                    [max(p[0] for p in next_b.bbox), min(p[1] for p in merged.bbox)],
+                    [max(p[0] for p in next_b.bbox), max(p[1] for p in next_b.bbox)],
+                    [min(p[0] for p in merged.bbox), max(p[1] for p in next_b.bbox)]
+                ]
+                merged = OCRBlock(
+                    text=merged.text + sep + next_b.text,
+                    confidence=(merged.confidence + next_b.confidence) / 2.0,
+                    bbox=new_bbox
+                )
+            merged_blocks.append(merged)
+            
+        return merged_blocks
 
     def _parse_legacy_ocr_result(self, raw_result: list[Any]) -> list[OCRBlock]:
         """Parse output kiểu PaddleOCR 2.x."""
@@ -144,6 +230,13 @@ class PaddleOCRExtractor:
             texts = result.get("rec_texts") or result.get("texts") or []
             scores = result.get("rec_scores") or result.get("scores") or []
             boxes = result.get("rec_boxes") or result.get("dt_polys") or result.get("boxes") or []
+            
+            if isinstance(texts, str): texts = [texts]
+            if isinstance(scores, (float, int)): scores = [scores]
+            # boxes might be a 3D array or a 2D array if single box
+            if isinstance(boxes, list) and len(boxes) > 0 and not isinstance(boxes[0], list):
+                if len(boxes) == 4 or len(boxes) == 8: # likely a single flat box
+                    boxes = [boxes]
 
             for idx, text in enumerate(texts):
                 confidence = float(scores[idx]) if idx < len(scores) else 0.0
@@ -159,7 +252,23 @@ class PaddleOCRExtractor:
                 else:
                     bbox = raw_box
                     
+                # Normalize flat bbox to 2D list [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+                if bbox and isinstance(bbox[0], (int, float)):
+                    if len(bbox) == 4:
+                        bbox = [
+                            [bbox[0], bbox[1]],
+                            [bbox[2], bbox[1]],
+                            [bbox[2], bbox[3]],
+                            [bbox[0], bbox[3]]
+                        ]
+                    elif len(bbox) >= 8:
+                        bbox = [
+                            [bbox[0], bbox[1]],
+                            [bbox[2], bbox[3]],
+                            [bbox[4], bbox[5]],
+                            [bbox[6], bbox[7]]
+                        ]
+
                 if str(text).strip():
-                    blocks.append(OCRBlock(text=str(text).strip(), confidence=confidence, bbox=bbox))
                     blocks.append(OCRBlock(text=str(text).strip(), confidence=confidence, bbox=bbox))
         return blocks

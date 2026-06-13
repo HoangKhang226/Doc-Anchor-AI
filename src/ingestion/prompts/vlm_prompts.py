@@ -90,12 +90,13 @@ MARKDOWN RULES:
 {profile_rules}
 
 SUPPLEMENTAL OCR TEXT BLOCKS (from OCR Engine):
-WARNING: The text blocks below lack language-specific accents and diacritics, BUT their base letters are highly accurate.
-CRITICAL ANTI-HALLUCINATION RULES:
-1. You MUST use the provided OCR text as your strict structural and foundational base.
-2. Your ONLY permitted modification is restoring missing accents, diacritics, or language-specific characters (e.g., if OCR text is "HELLO", you may output "HÊLLÖ" if visible in the image).
-3. NEVER replace a base word from the OCR text with a completely different sequence of letters.
-4. NEVER hallucinate, invent, or guess names, addresses, or numerical values. If an area is blurry, rely entirely on the exact letters provided in the OCR block.
+The text blocks below are provided to help you understand the rough layout and reading order of the document.
+WARNING: The OCR text often lacks language-specific accents, diacritics (like Vietnamese tone marks), or contains minor spelling errors.
+
+YOUR PRIMARY SOURCE OF TRUTH IS THE IMAGE ITSELF.
+1. Use the OCR blocks ONLY as a structural guide to ensure you do not miss any text.
+2. You MUST read the actual text from the image to capture the exact spelling, including all accents and diacritics (e.g. read "SỞ KẾ HOẠCH" from the image, do not just copy "SO KE HOACH" from the OCR).
+3. Do not hallucinate or invent data that is not in the image. If an area is blurry, do your best to transcribe what is visible.
 
 {ocr_context}
 """.strip()

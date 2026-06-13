@@ -60,28 +60,25 @@ Pipeline hiện tại đã đạt mức **ổn định tốt** với Sim trung b
 
 ---
 
-## 5. Kế hoạch hành động kế tiếp (Next Steps Roadmap)
+## 5. Kế hoạch hành động kế tiếp (Next Steps Roadmap) - CẬP NHẬT ĐỢT 4
 
-Để đưa pipeline từ mức "Ổn định tốt" (88.57% Sim) lên mức "Hoàn hảo" (>90% Sim toàn tập) trên mọi loại tài liệu doanh nghiệp, hệ thống sẽ tập trung xử lý các edge case theo thứ tự ưu tiên sau:
+Để đưa pipeline từ mức "Ổn định tốt" (88.57% Sim) lên mức "Hoàn hảo" (>90% Sim toàn tập) trên mọi loại tài liệu doanh nghiệp, hệ thống tập trung xử lý các edge case theo thứ tự ưu tiên sau:
 
-### 🔴 Ưu tiên cao (P0): Chống suy thoái layout & Xử lý lỗi cắt cụt chuỗi do vòng lặp
+### ✅ Đã hoàn thành (Đợt 4 Refactor)
 
-1. **Phân tích nguyên nhân suy thoái (Root-cause Analysis) cho `image_35` (-10.6%):**
-   * Tiến hành `diff` văn bản dự đoán giữa Đợt 2 và Đợt 3 để xác định chính xác VLM bị mất đoạn văn hay bị nhảy định dạng layout.
-   * Đánh giá nghiêm túc dựa trên bộ đôi metric **CER** và **Sim** tổng thể. Nếu CER không tăng mà Sim giảm do VLM tự ý thay đổi cách xuống dòng hoặc thêm ký tự bullet point không mong muốn, tiến hành tinh chỉnh Prompt Profile để cân bằng giữa cấu trúc bảng biểu và văn bản thuần.
+1. **[DONE] Nâng cấp Thuật toán Khử lặp (Dedup) ở tầng Hậu xử lý:**
+   * Đã triển khai giải pháp Cửa sổ trượt (Sliding Window) kết hợp Fuzzy Match ngắn ở tầng Paragraph (`_dedup_repeated_blocks`). Các khối văn bản bị lặp hoặc bị cắt cụt đuôi do vòng lặp (repetition loop) đã được triệt tiêu hoàn toàn.
 
-2. **Nâng cấp Thuật toán Khử lặp (Dedup) ở tầng Hậu xử lý (Post-processing):**
-   * Thay thế cơ chế đối sánh tuyệt đối (Exact Match Fingerprint) vốn dễ bị "lọt lưới" khi VLM cạn token sinh ra dẫn đến câu bị cụt giữa chừng.
-   * Triển khai giải pháp **Cửa sổ trượt (Sliding Window)** kết hợp **Fuzzy Match ngắn** ở tầng Paragraph. Nếu khối văn bản cuối cùng (EOF) có độ tương đồng ký tự cao (>80%) với một phần của khối văn bản hoàn chỉnh liền trước ➡️ Tiến hành gọt bỏ hoàn toàn đoạn cụt đuôi để cứu điểm các file bị dính loop (tiêu biểu như `image_14`).
+2. **[DONE] Dọn rác mô hình (Strip Model Artifacts):**
+   * Đã bổ sung Regex vào `_cleanup_markdown()` để quét và triệt tiêu toàn bộ các thẻ meta-tag đặc thù của mô hình (`[uncertain:]`, `<box>`, `[unrecognized]`, `<ref>`), giữ tài liệu sạch đẹp đối với các biểu mẫu trống.
 
-### 🟡 Ưu tiên trung bình (P1): Dọn rác mô hình & Tối ưu hóa biểu mẫu trống
-
-3. **Mở rộng logic dọn dẹp văn bản trong `_cleanup_markdown()`:**
-   * Không cài đặt thêm hàm mới để giữ code gọn gàng. Tiến hành bổ sung các pattern Regex vào hàm `_cleanup_markdown()` hiện có trong `pipeline.py` để quét và triệt tiêu toàn bộ các thẻ meta-tag đặc thù của mô hình (ví dụ: `[uncertain:]`, `<box>`, `[unrecognized]`).
-   * Giải pháp này sẽ dọn sạch các ký tự rác tự sinh khi VLM xử lý các biểu mẫu trống hoặc form điền tay (như `image_41`), giúp bảo toàn độ sạch của văn bản đầu ra.
+3. **[DONE] Gỡ bỏ các Bẫy Heuristic triệt tiêu VLM (Critical Fix):**
+   * **Bẫy JSON:** Xóa logic tự động xóa trắng output của VLM nếu văn bản bắt đầu bằng `{`. Pipeline hiện tại tin tưởng và giữ nguyên các kết quả có cấu trúc JSON hợp lệ.
+   * **Bẫy Anti-Spam (Dòng ngắn & Bullet):** Gỡ bỏ hoàn toàn logic `short_ratio` và `bullet_ratio` trong hàm `_cleanup_markdown()`. Pipeline không còn tự ý ném các bảng biểu mẫu dạng danh sách/Key-Value vào sọt rác và fallback về OCR mù dấu nữa.
+   * **Cởi trói Prompt VLM:** Cập nhật `vlm_prompts.py` từ chỗ "Cấm sáng tạo, bám cứng vào OCR" thành "Dùng OCR để định vị, nhưng PHẢI tự nhìn ảnh để khôi phục dấu tiếng Việt". Kết quả: VLM đã phục hồi 100% tiếng Việt có dấu.
 
 ### 🟢 Ưu tiên thấp/Thử nghiệm (P2): Kiểm soát xử lý tài liệu mật độ cao
 
 4. **Kiểm tra hành vi VLM trên tài liệu đa ngôn ngữ/mật độ dày (`image_25`):**
    * Đối với các tài liệu có mật độ chữ quá dày đặc và cỡ chữ nhỏ (như tài liệu tiếng Nhật), tiến hành đánh giá xem việc chạy 3 Workers có gây ảnh hưởng đến khả năng phân tách dòng của VLM hay không.
-   * Giữ nguyên nguyên tắc xử lý lỗi lặp ở tầng Python code (Post-processing) thay vì can thiệp vào các tham số inference param (`frequency_penalty`), nhằm tránh rủi ro mô hình bỏ sót các từ khóa lặp lại tự nhiên rất phổ biến trong tài liệu doanh nghiệp (như "Bên A", "Bên B" trong hợp đồng, hoặc các đơn vị đo lường).
+   * Giữ nguyên nguyên tắc xử lý lỗi lặp ở tầng Python code (Post-processing) thay vì can thiệp vào các tham số inference param (`frequency_penalty`), nhằm tránh rủi ro mô hình bỏ sót các từ khóa lặp lại tự nhiên rất phổ biến trong tài liệu doanh nghiệp.

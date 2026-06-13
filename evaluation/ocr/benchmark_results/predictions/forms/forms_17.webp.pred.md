@@ -1,0 +1,17 @@
+# DIGITAL MARKETING
+
+| 5 giao dịch mua hàng năm, 5 lần truy cập mỗi tháng 5 lần đăng nhập mỗi tuần, 5 lần mở email mỗi tháng và 5 lần nhấp vào email mỗi năm để cập đến thông tin nào sau đây? | Tần suất |
+| --- | --- |
+| Ai được phép truy cập thông tin này và với những điều kiện nào? Nội dung trên đề cập đến vấn đề gì trong các vấn đề pháp lý liên quan đến quyền sở hữu thông tin cá nhân được Mason tóm tắt? | Khả năng truy cập |
+| Ai sở hữu nó và quyền sở hữu có thể được chuyển giao như thế nào? Nội dung trên đề cập đến vấn đề gì trong các vấn đề pháp lý liên quan đến quyền sở hữu thông tin cá nhân được Mason tóm tắt? | Tài sản |
+| Ảnh hưởng bên ngoài tới chiến lược marketing kỹ thuật, ngoại trừ yếu tố nào sau đây? | Mục tiêu và chiến lược của công ty; chiến lược marketing |
+| Ảnh hưởng bên trong tới chiến lược marketing kỹ thuật số bao gồm yếu tố nào sau đây? | Mục tiêu và chiến lược của công ty, chiến lược marketing |
+| Áp dụng marketing nội dung và tìm kiếm để nhắm đến khách hàng mục tiêu tiềm năng, chủ động và tự lựa chọn với nhu cầu xác định thuộc đặc điểm nào sau đây? | Từ đẩy đến kéo |
+| Bạn sẽ nhận được các gợi ý mua hàng được cá nhân hóa theo nhu cầu và sở thích của bạn từ Shopee sau khi bạn đặt hàng trực tuyến. Nội dung trên đề cập đến vấn đề gì sau đây? | Tương tác của khách hàng. |
+| Biểu mẫu trực tuyến dùng để thu thập loại thông tin nào sau đây? | Thông tin hồ sơ bao gồm thông tin cá nhân |
+| Bình luận và đánh giá thông qua trang web là để cập đến nội dung nào sau đây? | Tương tác |
+| Các ảnh cố định trên một site nào đó, tương tự như một quảng cáo trên một tạp chí hay nhật báo để cập đến công cụ nào sau đây? | Quảng cáo trực tuyến |
+| Các biện pháp có được xem xét và giải thích vào đúng thời điểm không? Đây là câu hỏi liên quan đến vấn đề nào sau đây? | Phân tích |
+| Các công cụ thích hợp nhất để thu thập và báo cáo các số liệu đáp ứng các yêu cầu như báo cáo về hiệu suất marketing, độ chính xác, ngoại trừ để cập đến nội dung nào sau đây? | Phân tích dòng nhập chuột và phân khúc khách truy cập |
+| Các doanh nghiệp tại Việt Nam có thể tìm hiểu thị trường châu Âu, Mỹ, Nhật thông qua các website thông tin thị trường. Đây là ưu điểm nào dưới đây của marketing kỹ thuật số? | Phạm vi hoạt động toàn cầu |
+| Các dự án chiến lược được thiết kế sử dụng | Thu hút khách hàng |

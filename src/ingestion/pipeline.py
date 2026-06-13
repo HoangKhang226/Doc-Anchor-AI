@@ -244,8 +244,7 @@ class IngestionPipeline:
             markdown = markdown[:-3].strip()
 
         if markdown.lstrip().startswith("{"):
-            warnings.append("VLM trả markdown dạng JSON; đã dựng lại markdown từ tables/OCR.")
-            markdown = ""
+            warnings.append("VLM trả markdown dạng JSON; giữ nguyên dưới dạng raw text thay vì xóa bỏ.")
 
         if not markdown and tables:
             markdown = self._tables_to_markdown(tables)
@@ -482,16 +481,6 @@ class IngestionPipeline:
 
         # Kiểm tra xem có bảng markdown hợp lệ không
         has_table = "|" in cleaned_text and "---" in cleaned_text
-
-        # Chỉ rebuild từ OCR nếu không có bảng và tỷ lệ spam dòng ngắn/bullet cực kỳ cao (ví dụ: ảnh cực kỳ mờ/nhiễu)
-        if not has_table and struct_line_count >= 5:
-            bullet_ratio = bullet_like / struct_line_count
-            short_ratio = short_like / struct_line_count
-            if (bullet_ratio >= 0.70 or short_ratio >= 0.85) and ocr_blocks:
-                warnings.append("Markdown quá nhiễu; đã dựng lại phiên bản gọn hơn từ OCR blocks.")
-                rebuilt = self._rebuild_markdown_from_ocr(ocr_blocks)
-                if rebuilt.strip():
-                    cleaned_text = rebuilt.strip()
 
         return cleaned_text, warnings
 

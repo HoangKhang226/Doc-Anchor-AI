@@ -1,0 +1,27 @@
+# NGÂN HÀNG TMCP NGOẠI THƯƠNG VIỆT NAM (VIETCOMBANK)
+## THỐNG KÊ GIAO DỊCH
+
+**Tên tài khoản:** MAT TRAN TO QUOC VN - BAN CUU TRO TW  
+**Địa chỉ:** 46 TRANG THI, HANOI  
+**Chi nhánh:** 50 GIAO DICH  
+**Số tài khoản:** 0011001932418  
+**Loại tiền:** VND  
+
+Từ: 15/09/2024 đến: 23/09/2024  
+
+| STT | Ngày giao dịch | Số tiền ghi có | Tên người chuyển | Nội dung chi tiết |
+| --- | -------------- | ------------- | ----------------- | ----------------- |
+| 1   | 15/09/2024 00:00:00 | 300.000,00 | CONG TY CP DỊCH VỤ DI ĐỘNG TRỰC TUYẾN | PARTNERDIRECT_DEBIT5_VCB.MSE66844262466_20240915.66844262 466-0384335029_NGUYEN KHANH BAO CHAU chuyen tien qua MoMo thuong que em noay lu |
+| 2   | 15/09/2024 00:00:03 | 100.000,00 | LE THANH SON | MBVCB.7037262323.ung ho dong bao gap thien tai bao lut .CT tu 0031000205*** toi 0011001932418 Uy Ban Trung uong Mat tran To quoc Viet Nam |
+| 3   | 15/09/2024 00:00:05 | 100.000,00 | Chuyen tien lien ngan hang | 0200970422091500000320242D12444225.64878.000004.KHUC THI MY DUNG ung ho dong bao Viet Nam |
+| 4   | 15/09/2024 00:00:06 | 500,000,00 | Chuyen tien lien ngan hang | 651787.150924.000005.Gia dinh ba Vu Thi Ly ung ho khac phuc hau qua ban Yaqi FT24260421433059 |
+| 5   | 15/09/2024 00:00:09 | 1.500,000,00 | Chuyen tien lien ngan hang | 503707.150924.000009.Than gui dong bao dot 1- manh me len nhe Mien Bac oi |
+| 6   | 15/09/2024 00:00:11 | 200,000,00 | Chuyen tien lien ngan hang | 651922.150924.000010.PHAM THI KIEU chuyen FT24260548702076 |
+| 7   | 15/09/2024 00:00:13 | 50,000,00 | Chuyen tien lien ngan hang | 961624.150924.000013.vo chong Son Thuong ung ho dong bao lu lut |
+| 8   | 15/09/2024 00:00:15 | 1.309,000,00 | HOANG THI LAN PHUONG | MBVCB.7037262445.13.09 ta sn con, con muon gui mong uoc cho cac ban vung lu som duoc den truong.CT tu 0011004243*** HOANG THI LAN PHUONG toi 0011001932418MAT TRAN TO QUOC VN-BAN CUU TRO TW |
+| 9   | 15/09/2024 00:00:16 | 100,000,00 | NGUYEN THI THUY | MBVCB.703726Z872.con xin ung ho ba con mien bac a.CT tu 1024730***NGUYEN THI THUY toi 0011001932418 MAT TRAN TO QUOC VN-BAN CUU TRO TW |
+| 10  | 15/09/2024 00:00:17 | 12.466,00 | Chuyen tien lien ngan hang | 227727.150924.000017.DINH THI NGOC ANH chuyen tien |
+| 11  | 15/09/2024 00:00:20 | 300,000,00 | Chuyen tien lien ngan hang | 291326.150924.000020.DINH HONG GIANG ung ho dong bao mien |
+| 12  | 15/09/2024 00:00:21 | 100,000,00 | Chuyen tien lien ngan hang | 652180.150924.000020.Chuc dong bao mau chang vuot qua. bac bi anht huono lu lut |
+| 13  | 15/09/2024 00:00:23 | 500,000,00 | Chuyen tien lien ngan hang | ho nguoi dan lu lut |
+| 14  | 15/09/2024 00:00:23 | 2.000,000,00 | Chuyen tien lien ngan hang | 020097042209150000232024E7O3639149.64948.000023.DO PHAN MINH VUONG chuyen tien |

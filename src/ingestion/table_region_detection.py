@@ -45,7 +45,24 @@ class TableRegion:
 
 
 class TableRegionDetector:
-    """Detect vùng bảng từ ảnh cleaned, ưu tiên line morphology nhẹ."""
+    """Detect vùng bảng từ ảnh sử dụng PP-Structure (Deep Learning) thay vì OpenCV."""
+    
+    def __init__(self):
+        self._engine = None
+
+    def _get_engine(self):
+        if self._engine is None:
+            try:
+                import os
+                os.environ["FLAGS_use_mkldnn"] = "0"
+                os.environ["FLAGS_enable_pir_api"] = "0"
+                os.environ["PADDLE_DISABLE_MKLDNN"] = "1"
+                from paddleocr import PPStructure
+                self._engine = PPStructure(show_log=False, image_orientation=False, ocr=False, table=False, recovery=False)
+            except ImportError:
+                logger.error("Chưa cài đặt paddleocr (hoặc PPStructure). Không thể dùng.")
+                return None
+        return self._engine
 
     def detect(self, image_path: str | Path) -> list[TableRegion]:
         path = str(image_path)
@@ -55,86 +72,54 @@ class TableRegionDetector:
             return []
 
         regions = self.detect_from_image(image)
-        logger.info(f"Detected {len(regions)} table region(s) from: {path}")
+        logger.info(f"Detected {len(regions)} table region(s) from: {path} using PP-Structure")
         return regions
 
     def detect_from_image(self, image: np.ndarray) -> list[TableRegion]:
         if image is None or image.size == 0:
             return []
 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        if gray.shape[0] < 100 or gray.shape[1] < 100:
+        engine = self._get_engine()
+        if not engine:
             return []
 
-        # Nhị phân hóa để làm nổi đường kẻ bảng.
-        binary = cv2.adaptiveThreshold(
-            ~gray,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            15,
-            -2,
-        )
+        try:
+            if hasattr(engine, "predict"):
+                result_iter = engine.predict(image)
+                # predict() returns an iterator/generator in some versions, or a single result
+                result = next(result_iter) if hasattr(result_iter, "__next__") else result_iter
+                # V3 result usually has 'res' property which contains layout
+                if hasattr(result, "json"):
+                    result_dict = result.json()
+                elif hasattr(result, "res"):
+                    result_dict = result.res
+                else:
+                    result_dict = result
+                # Thường trả về layout bbox trong dt_polys hoặc layouts
+                # Tạm thời tương thích với cả list format
+                if isinstance(result_dict, dict) and "layout" in result_dict:
+                    result = result_dict["layout"]
+                elif isinstance(result_dict, list):
+                    result = result_dict
+                elif isinstance(result_dict, dict):
+                    # Khám phá cấu trúc dict
+                    if "res" in result_dict and isinstance(result_dict["res"], list):
+                        result = result_dict["res"]
+                    else:
+                        result = [result_dict]
+            else:
+                result = engine(image)
+        except Exception as e:
+            logger.error(f"Lỗi khi chạy PP-Structure: {e}")
+            return []
 
-        horizontal = self._extract_lines(binary, axis="horizontal")
-        vertical = self._extract_lines(binary, axis="vertical")
-        grid = cv2.bitwise_or(horizontal, vertical)
-        grid = cv2.morphologyEx(grid, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=2)
-
-        # Tính toán các điểm giao cắt giữa đường ngang và dọc
-        intersections = cv2.bitwise_and(horizontal, vertical)
-
-        regions = self._contours_to_regions(grid, image.shape[:2], intersections)
-        return regions
-
-    def _extract_lines(self, binary: np.ndarray, axis: str) -> np.ndarray:
-        h, w = binary.shape[:2]
-        if axis == "horizontal":
-            size = max(20, w // 30)
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (size, 1))
-        else:
-            size = max(20, h // 30)
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, size))
-        extracted = cv2.erode(binary, kernel, iterations=1)
-        extracted = cv2.dilate(extracted, kernel, iterations=1)
-        return extracted
-
-    def _contours_to_regions(self, mask: np.ndarray, image_shape: tuple[int, int], intersections: np.ndarray = None) -> list[TableRegion]:
-        h, w = image_shape
-        area_total = float(h * w)
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         regions: list[TableRegion] = []
-
-        for contour in contours:
-            area = cv2.contourArea(contour)
-            if area < area_total * 0.01:
-                continue
-
-            x, y, bw, bh = cv2.boundingRect(contour)
-            if bw < 80 or bh < 80:
-                continue
-
-            aspect = bw / max(1.0, bh)
-            if aspect < 0.4 and bh / max(1.0, bw) < 0.4:
-                continue
-
-            pad_x = max(8, int(bw * 0.02))
-            pad_y = max(8, int(bh * 0.02))
-            x1 = max(0, x - pad_x)
-            y1 = max(0, y - pad_y)
-            x2 = min(w, x + bw + pad_x)
-            y2 = min(h, y + bh + pad_y)
-
-            # Ràng buộc Bảng phải có lưới kẻ (ít nhất 4 điểm giao cắt)
-            if intersections is not None:
-                roi = intersections[y1:y2, x1:x2]
-                _, intersection_contours, _ = cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE) if cv2.__version__.startswith('3') else (None, *cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE))
-                intersection_contours = cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)[0]
-                if len(intersection_contours) < 4:
-                    continue
-
-            score = min(1.0, area / max(1.0, area_total * 0.1))
-            regions.append(TableRegion(bbox=(x1, y1, x2, y2), score=round(score, 3)))
+        for res in result:
+            if res.get('type') == 'table':
+                bbox = res.get('bbox')
+                if bbox and len(bbox) == 4:
+                    x1, y1, x2, y2 = [int(v) for v in bbox]
+                    regions.append(TableRegion(bbox=(x1, y1, x2, y2), score=0.95, source="ppstructure"))
 
         regions.sort(key=lambda region: (region.y1, region.x1))
         return self._merge_overlapping_regions(regions)

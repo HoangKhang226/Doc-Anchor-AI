@@ -1,0 +1,20 @@
+# Chuyên đề 3
+## VĂN BẢN QUẢN LÝ HÀNH CHÍNH NHÀ NƯỚC
+
+### I. KHÁI QUÁT VỀ VĂN BẢN QUẢN LÝ NHÀ NƯỚC
+#### 1. Khái niệm
+##### a) Văn bản
+Hoạt động giao tiếp của nhân loại được thực hiện chủ yếu bằng ngôn ngữ. Phương tiện giao tiếp này được thực hiện ngay từ buổi đầu của xã hội loài người. Với sự ra đời của chữ viết, con người đã thực hiện được những không gian cách biệt qua nhiều thế hệ. Hoạt động giao tiếp bằng ngôn ngữ luôn luôn được thực hiện qua quá trình phát và nhận các ngôn bản.  
+
+Hiện nay có rất nhiều quan niệm khác nhau về văn bản:  
+- Quan niệm 1: "Văn bản là một loại tài liệu được hình thành trong các hoạt động khác nhau của đời sống xã hội";  
+- Quan niệm 2: Quan niệm của các nhà ngôn ngữ: "Văn bản là một chính thể ngôn ngữ, thường bao gồm một tập hợp các câu và có thể có một đầu đề, có tính nhất quán về chủ đề, trọn vẹn về nội dung, được tổ chức theo một kết cấu chặt chẽ";  
+- Quan niệm 3: Quan niệm theo nghĩa rộng của các nhà nghiên cứu hành chính: "Văn bản là phương tiện ghi tin và truyền đạt thông tin bằng một ngôn ngữ hay một ký hiệu ngôn ngữ nhất định".  
+
+##### b) Văn bản quản lý nhà nước
+Văn bản quản lý nhà nước (QLNN) là những quyết định và thông tin quản lý thành văn (được văn bản hoá) do các cơ quan quản lý nhà nước ban hành theo thẩm quyền, trình tự, thủ tục, hình thức nhất định và được nhà nước đảm bảo thi hành bằng những hình thức khác nhau nhằm điều chỉnh các mối quan hệ quản lý nội bộ nhà nước hoặc giữa các cơ quan nhà nước với các tổ chức và công dân.  
+
+##### c) Văn bản quản lý hành chính nhà nước
+Văn bản quản lý hành chính nhà nước (QLHCNN) là một bộ phận của văn bản QLNN, bao gồm những văn bản của các cơ quan nhà nước (mà chủ yếu là các cơ quan hành chính nhà nước) dùng để đưa ra các quyết định và chuyển tải các thông tin quản lý trong hoạt động chấp hành và điều hành. Các văn bản đặc thù thuộc thẩm quyền lập pháp (văn bản luật, văn bản dưới luật mang tính chất luật) hoặc thuộc thẩm quyền tư pháp (bản án, cáo trạng...) không phải là văn bản QLHCNN.  
+
+Và như vậy, về mặt nội dung của văn bản: văn bản quản lý nhà nước chứa đựng những quyết định và thông tin quản lý nhà nước;
