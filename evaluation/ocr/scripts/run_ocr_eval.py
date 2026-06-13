@@ -12,57 +12,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-import re
-
-def normalize_text(text: str) -> str:
-    """Chuẩn hóa text trước khi so sánh: Loại bỏ tất cả noise từ Markdown formatting."""
-    if not text:
-        return ""
-    
-    # 1. Chuyển về chữ thường
-    text = text.lower()
-    
-    # 2. Xóa các tag HTML (<br>, <br/>) thường có trong GT
-    text = re.sub(r'<br\s*/?>', ' ', text)
-    
-    # 3. Xóa toàn bộ dòng kẻ bảng Markdown dạng |---|---| hoặc |:---|:---|
-    text = re.sub(r'^\|[\s:|-]+\|\s*$', '', text, flags=re.MULTILINE)
-    
-    # 4. Xóa dấu heading Markdown (#, ##, ###)
-    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
-    
-    # 5. Xóa các ký tự định dạng: |, *, dấu gạch ngang kẻ ----
-    text = text.replace("|", " ").replace("*", " ")
-    text = re.sub(r'-{3,}', ' ', text)  # --- hoặc --------
-    
-    # 6. Chỉ xóa dấu gạch ngang '-' nếu nó đứng độc lập, GIỮ nếu nằm trong số âm
-    text = re.sub(r'(?<!\d)-(?!\d)', ' ', text)
-    
-    # 7. Xóa dấu ngoặc vuông dùng cho checkbox [ ] [x]
-    text = re.sub(r'\[\s*[xX]?\s*\]', ' ', text)
-    
-    # 8. Thu gọn khoảng trắng
-    text = re.sub(r'\s+', ' ', text)
-    
-    return text.strip()
-
-def calculate_cer(reference: str, hypothesis: str) -> float:
-    reference = normalize_text(reference)
-    hypothesis = normalize_text(hypothesis)
-    if len(reference) == 0:
-        return 1.0 if len(hypothesis) > 0 else 0.0
-    distance = Levenshtein.distance(reference, hypothesis)
-    return distance / len(reference)
-
-def calculate_wer(reference: str, hypothesis: str) -> float:
-    reference = normalize_text(reference)
-    hypothesis = normalize_text(hypothesis)
-    ref_words = reference.split()
-    hyp_words = hypothesis.split()
-    if len(ref_words) == 0:
-        return 1.0 if len(hyp_words) > 0 else 0.0
-    distance = Levenshtein.distance(ref_words, hyp_words)
-    return distance / len(ref_words)
+from evaluation_metrics import calculate_metrics_by_category
 
 def main():
     parser = argparse.ArgumentParser(description="Colab OCR Evaluation Suite")
@@ -144,24 +94,18 @@ def main():
             with open(pred_path, 'w', encoding='utf-8') as f:
                 f.write(prediction)
 
-            cer = calculate_cer(ground_truth, prediction)
-            wer = calculate_wer(ground_truth, prediction)
-            
-            # ĐÃ SỬA: Dùng normalized text cho Sim (trước đây dùng raw text gây trừ điểm oan)
-            norm_gt = normalize_text(ground_truth)
-            norm_pred = normalize_text(prediction)
-            sim = fuzz.ratio(norm_gt, norm_pred) / 100.0
-            
-            # Token Sort Ratio: Bỏ qua thứ tự từ (quan trọng cho bảng biểu)
-            sim_token = fuzz.token_sort_ratio(norm_gt, norm_pred) / 100.0
+            # Gọi Metric Router từ evaluation_metrics.py
+            metrics = calculate_metrics_by_category(dataset_name, ground_truth, prediction)
             
             with write_lock:
                 results[img_id] = {
                     "dataset": dataset_name,
-                    "cer": round(cer, 3),
-                    "wer": round(wer, 3),
-                    "sim": round(sim, 3),
-                    "sim_token": round(sim_token, 3),
+                    "cer": metrics["cer"],
+                    "wer": metrics["wer"],
+                    "sim": metrics["sim"],
+                    "sim_token": metrics["sim_token"],
+                    "table_f1": metrics.get("table_f1"),
+                    "kie_f1": metrics.get("kie_f1"),
                     "latency": round(latency, 2),
                     "mode": extraction.metadata.get('layout_mode')
                 }
@@ -169,7 +113,14 @@ def main():
                 with open(report_file, "w", encoding='utf-8') as f:
                     json.dump(results, f, indent=4, ensure_ascii=False)
             
-            return f"✅ Xong {img_id} ({latency:.2f}s) | CER: {cer:.3f} | WER: {wer:.3f} | Sim: {sim:.2%} | TokenSim: {sim_token:.2%}"
+            # Xây dựng chuỗi kết quả
+            log_msg = f"✅ Xong {img_id} ({latency:.2f}s) | CER: {metrics['cer']:.3f} | WER: {metrics['wer']:.3f} | Sim: {metrics['sim']:.2%}"
+            if "table_f1" in metrics:
+                log_msg += f" | Table F1: {metrics['table_f1']:.2%}"
+            if "kie_f1" in metrics:
+                log_msg += f" | Form F1: {metrics['kie_f1']:.2%}"
+                
+            return log_msg
         except Exception as e:
             return f"❌ LỖI tại {img_id}: {e}"
 
@@ -196,6 +147,12 @@ def main():
     print("="*80)
     
     if results:
+        # Nhóm kết quả theo dataset/thư mục
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for r in results.values():
+            grouped[r["dataset"]].append(r)
+
         total_cer = sum(r["cer"] for r in results.values())
         total_wer = sum(r["wer"] for r in results.values())
         total_sim = sum(r["sim"] for r in results.values())
@@ -206,26 +163,51 @@ def main():
         # --- GHI RA FILE TXT ĐỂ DỄ DÀNG COPY/PASTE VÀ ĐÁNH GIÁ ---
         txt_report_file = Path("evaluation/ocr/eval_report.txt")
         with open(txt_report_file, "w", encoding="utf-8") as f:
-            f.write("BÁO CÁO ĐÁNH GIÁ CHI TIẾT TỪNG ẢNH\n")
             f.write("="*80 + "\n")
-            for img_id, r in results.items():
-                st = r.get('sim_token', r['sim'])
-                f.write(f"[{img_id}] | CER: {r['cer']:.3f} | WER: {r['wer']:.3f} | Sim: {r['sim']:.2%} | TokenSim: {st:.2%}\n")
+            f.write("📊 BÁO CÁO BENCHMARK THEO LOẠI TÀI LIỆU (CATEGORIZED)\n")
+            f.write("="*80 + "\n\n")
             
-            f.write("\n" + "="*80 + "\n")
-            f.write("TỔNG KẾT ĐÁNH GIÁ\n")
+            for cat, items in sorted(grouped.items()):
+                cat_n = len(items)
+                cat_cer = sum(r["cer"] for r in items) / cat_n
+                cat_wer = sum(r["wer"] for r in items) / cat_n
+                cat_sim = sum(r["sim"] for r in items) / cat_n
+                
+                # Tính các chỉ số phụ nếu có
+                special_metrics = ""
+                if cat == "tables":
+                    cat_table_f1 = sum(r.get("table_f1", 0.0) or 0.0 for r in items) / cat_n
+                    special_metrics = f" | Table Cell F1: {cat_table_f1:.2%}"
+                elif cat == "forms":
+                    cat_kie_f1 = sum(r.get("kie_f1", 0.0) or 0.0 for r in items) / cat_n
+                    special_metrics = f" | Form KIE F1: {cat_kie_f1:.2%}"
+                else:
+                    cat_sim_token = sum(r.get("sim_token", r["sim"]) for r in items) / cat_n
+                    special_metrics = f" | TokenSim: {cat_sim_token:.2%}"
+                
+                f.write(f"📁 Nhóm: {cat.upper()} ({cat_n} file)\n")
+                f.write(f"   -> CER: {cat_cer:.3f} | WER: {cat_wer:.3f} | Sim: {cat_sim:.2%}{special_metrics}\n\n")
+
+            f.write("="*80 + "\n")
+            f.write("🔥 TỔNG KẾT TOÀN HỆ THỐNG (OVERALL)\n")
             f.write("="*80 + "\n")
             f.write(f"Tổng số file đã hoàn thành : {n}\n")
             f.write(f"CER trung bình toàn tập    : {total_cer/n:.3f}\n")
             f.write(f"WER trung bình toàn tập    : {total_wer/n:.3f}\n")
             f.write(f"Sim trung bình (normalized): {total_sim/n:.2%}\n")
-            f.write(f"TokenSim trung bình        : {total_sim_token/n:.2%}\n")
+            f.write(f"TokenSim trung bình        : {total_sim_token/n:.2%}\n\n")
 
-        print(f"Tổng số file đã hoàn thành : {n}")
-        print(f"CER trung bình toàn tập    : {total_cer/n:.3f}")
-        print(f"WER trung bình toàn tập    : {total_wer/n:.3f}")
-        print(f"Sim trung bình (normalized): {total_sim/n:.2%}")
-        print(f"TokenSim trung bình        : {total_sim_token/n:.2%}")
+            f.write("="*80 + "\n")
+            f.write("BÁO CÁO ĐÁNH GIÁ CHI TIẾT TỪNG ẢNH\n")
+            f.write("="*80 + "\n")
+            for img_id, r in sorted(results.items()):
+                st = r.get('sim_token', r['sim'])
+                f.write(f"[{img_id}] | CER: {r['cer']:.3f} | WER: {r['wer']:.3f} | Sim: {r['sim']:.2%} | TokenSim: {st:.2%}\n")
+
+        # In thẳng ra màn hình Console cho người dùng xem
+        with open(txt_report_file, "r", encoding="utf-8") as f:
+            print(f.read())
+            
         print(f"\n📁 Đã lưu file báo cáo chi tiết tại: {txt_report_file}")
     else:
         print("Chưa có kết quả nào được ghi nhận.")

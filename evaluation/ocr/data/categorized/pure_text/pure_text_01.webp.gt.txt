@@ -1,0 +1,22 @@
+**Tài Liệu Học Thuật: Khảo Sát Tổng Quan Về Máy Tính Điện Tử (Electronic Computer)**
+
+Tài liệu này cung cấp một cái nhìn tổng quan về định nghĩa, nền tảng kiến trúc, nguyên lý hoạt động và tiến trình phát triển của máy tính điện tử. Tài liệu phục vụ cho mục đích nghiên cứu và tham khảo cơ bản trong lĩnh vực khoa học máy tính và công nghệ thông tin.
+
+---
+
+**1. Định nghĩa và Phân loại (Definition & Classification)**
+
+- **Định nghĩa:** Máy tính là một thiết bị điện tử có khả năng tiếp nhận dữ liệu (input), xử lý dữ liệu đó thông qua một tập hợp các câu lệnh được lập trình sẵn (program), lưu trữ thông tin và trích xuất kết quả dưới dạng thông tin có ý nghĩa (output).
+- **Phân loại theo quy mô và năng lực xử lý:**
+    - **Siêu máy tính (Supercomputer):** Hệ thống có khả năng tính toán hàng triệu tỷ phép tính mỗi giây (FLOPS), chuyên dùng cho các nghiên cứu khoa học phức tạp như mô phỏng khí hậu, vật lý lượng tử và sinh học phân tử.
+    - **Máy tính lớn (Mainframe):** Máy tính có khả năng xử lý lượng dữ liệu khổng lồ cùng lúc, thường được sử dụng bởi các ngân hàng, tập đoàn lớn và các tổ chức chính phủ để quản lý cơ sở dữ liệu và giao dịch.
+    - **Máy vi tính (Microcomputer/Personal Computer):** Phân khúc phổ biến nhất, bao gồm máy tính để bàn (desktop), máy tính xách tay (laptop) và các thiết bị di động thông minh (smartphone, tablet).
+
+**2. Kiến trúc Máy tính Cấu trúc cơ bản (Computer Architecture)**
+
+Phần lớn các máy tính hiện đại đều được thiết kế dựa trên **Kiến trúc Von Neumann** (do nhà toán học John von Neumann đề xuất vào năm 1945), trong đó dữ liệu và chương trình được lưu trữ chung trong một bộ nhớ.
+
+Kiến trúc này bao gồm các thành phần cốt lõi:
+- **Bộ vi xử lý trung tâm (CPU - Central Processing Unit):** Đóng vai trò là "bộ não" của máy tính. CPU bao gồm:
+    - *Khối điều khiển (CU - Control Unit):* Điều phối hoạt động của các thành phần phần cứng bằng cách đọc và giải mã các lệnh.
+    - *Khối tính toán toán học và logic (ALU - Arithmetic Logic Unit):* Thực hiện các phép toán

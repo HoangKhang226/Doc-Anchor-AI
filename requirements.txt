@@ -34,3 +34,6 @@ python-multipart>=0.0.9
 
 # Observability (optional)
 langsmith>=0.3
+
+# Evaluation Metrics
+jiwer>=3.0

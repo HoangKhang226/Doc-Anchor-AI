@@ -1,0 +1,38 @@
+| SỐ HIỆU TK | TÊN TÀI KHOẢN | |
+|---|---|---|
+| Cấp 1 | Cấp 2 | TIẾNG VIỆT | TIẾNG ANH |
+| | | **LOẠI TÀI KHOẢN TÀI SẢN** | |
+| **111** | | **Tiền mặt** | **Cash on hand** |
+| | 1111 | Tiền Việt Nam | Vietnam dong |
+| | 1112 | Ngoại tệ | Foreign currency |
+| | 1113 | Vàng tiền tệ | Gold, metal, precious stone |
+| **112** | | **Tiền gửi Ngân hàng** | **Cash at bank** |
+| | 1121 | Tiền Việt Nam | Vietnam dong |
+| | 1122 | Ngoại tệ | Foreign currency |
+| | 1123 | Vàng tiền tệ | Gold, metal, precious stone |
+| **113** | | **Tiền đang chuyển** | **Cash in transit** |
+| | 1131 | Tiền Việt Nam | Vietnam dong |
+| | 1132 | Ngoại tệ | Foreign currency |
+| **121** | | **Chứng khoán kinh doanh** | **Trading securities** |
+| | 1211 | Cổ phiếu | Stock |
+| | 1212 | Trái phiếu, tín phiếu, kỳ phiếu | Bond, treasury bill, exchange bill |
+| | 1218 | Chứng khoán và công cụ tài chính khác | Securities and other financial instruments |
+| **128** | | **Đầu tư nắm giữ đến ngày đáo hạn** | **Investments held to maturity** |
+| | 1281 | Tiền gửi có kỳ hạn | Term deposits |
+| | 1282 | Trái phiếu | Bonds |
+| | 1283 | Cho vay | Loans |
+| | 1288 | Các khoản đầu tư khác nắm giữ đến ngày đáo hạn | Other investments held to maturity |
+| **131** | | **Phải thu của khách hàng** | **Trade receivables** |
+| **133** | | **Thuế GTGT được khấu trừ** | **Deductible VAT** |
+| | 1331 | Thuế GTGT được khấu trừ của hàng hóa, dịch vụ | Deductible VAT of goods and services |
+| | 1332 | Thuế GTGT được khấu trừ của TSCĐ | Deductible VAT of fixed assets |
+| **136** | | **Phải thu nội bộ** | **Internal receivables** |
+| | 1361 | Vốn kinh doanh ở các đơn vị trực thuộc | Working capital provided to subunits |
+| | 1362 | Phải thu nội bộ về chênh lệch tỷ giá | Internal receivables on foreign exchange difference |
+| | 1363 | Phải thu nội bộ về chi phí đi vay đủ điều kiện được vốn hoá | Internal receivables on borrowing costs eligible for capitalization |
+| | 1368 | Phải thu nội bộ khác | Other internal receivables |
+| **138** | | **Phải thu khác** | **Other receivables** |
+| | 1381 | Tài sản thiếu chờ xử lý | Shortage of assets awaiting resolution |
+| | 1385 | Phải thu về cổ phần hoá | Receivables from privatization |
+| | 1388 | Phải thu khác | Others receivables |
+| **141** | | **Tạm ứng** | **Advances** |

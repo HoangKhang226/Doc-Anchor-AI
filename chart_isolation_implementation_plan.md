@@ -1,9 +1,9 @@
-# 📐 Implementation Plan: Chart Isolation (Tách biệt Biểu đồ)
+# 📐 Technical Docs: Chart Isolation (Tách biệt Biểu đồ)
 
 ## 🎯 Mục tiêu
 
 Tự động phát hiện vùng biểu đồ trong ảnh tài liệu, crop ra và lưu thành asset riêng.
-**Không sửa prompt, không rẽ nhánh pipeline, giữ nguyên 100% benchmark.**
+**Trạng thái: Đã hoàn thành 100%. Không sửa prompt, không rẽ nhánh pipeline, giữ nguyên 100% benchmark.**
 
 ---
 
@@ -19,21 +19,21 @@ Pipeline hiện tại chạy tuyến tính trong method [_extract_image_like](fi
 
 ### Các file liên quan trực tiếp
 
-| File | Vai trò | Sẽ sửa? |
+| File | Vai trò | Tình trạng |
 |------|---------|---------|
-| [pipeline.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/pipeline.py) | Luồng chính `_extract_image_like()` + `save_outputs()` | ✅ Thêm 2 dòng gọi |
+| [pipeline.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/pipeline.py) | Luồng chính `_extract_image_like()` + `save_outputs()` | ✅ Đã tích hợp |
 | [table_region_detection.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/table_region_detection.py) | OpenCV detect vùng bảng → trả `TableRegion` bbox | ❌ Không sửa |
-| [extraction_result.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/schemas/extraction_result.py) | Schema output — `ExtractionResult` dataclass | ✅ Thêm 1 field |
+| [extraction_result.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/schemas/extraction_result.py) | Schema output — `ExtractionResult` dataclass | ✅ Đã thêm field |
 | [schemas/__init__.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/schemas/__init__.py) | Export symbols | ❌ Không sửa |
-| [vlm_prompts.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/prompts/vlm_prompts.py) | 4 profile prompts cho VLM | ❌ **TUYỆT ĐỐI KHÔNG SỬA** |
+| [vlm_prompts.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/prompts/vlm_prompts.py) | 4 profile prompts cho VLM | ❌ Không sửa |
 | [layout_router.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/routing/layout_router.py) | Router chọn prompt profile + temperature | ❌ Không sửa |
-| `chart_region_detector.py` | **FILE MỚI** — Detect + crop biểu đồ | ✅ Tạo mới |
+| `chart_region_detector.py` | Detect + crop biểu đồ | ✅ Đã tạo mới |
 
 ---
 
-## 📋 Các bước triển khai
+## 📋 Chi tiết triển khai
 
-### Bước 1: Tạo file `chart_region_detector.py`
+### Thành phần 1: `chart_region_detector.py`
 
 > **Vị trí:** `src/ingestion/chart_region_detector.py` (cùng cấp với `table_region_detection.py`)
 
@@ -73,7 +73,7 @@ class ChartRegionDetector:
 > Vì mục tiêu là KHÔNG tạo thêm tải cho Qwen2.5-VL (đã ăn hết 15GB VRAM trên T4).
 > OpenCV detection là CPU-only, chạy song song mà không tranh chấp GPU với VLM.
 
-### Bước 2: Thêm field `chart_assets` vào `ExtractionResult`
+### Thành phần 2: Schema `ExtractionResult`
 
 > **File:** [extraction_result.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/schemas/extraction_result.py)
 
@@ -101,7 +101,7 @@ Mỗi phần tử trong `chart_assets` có cấu trúc:
 > Field mới dùng `field(default_factory=list)` nên sẽ luôn là `[]` mặc định.
 > 50 ảnh benchmark không có biểu đồ → `chart_assets = []` → **Benchmark không bị ảnh hưởng.**
 
-### Bước 3: Tích hợp vào `pipeline.py` — `_extract_image_like()`
+### Thành phần 3: Tích hợp vào `pipeline.py` — `_extract_image_like()`
 
 > **File:** [pipeline.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/pipeline.py#L105-L191)
 
@@ -143,7 +143,7 @@ Và ghi chart info vào metadata:
 +"chart_assets": chart_assets,
 ```
 
-### Bước 4: Cập nhật `save_outputs()` — Append chart vào Markdown
+### Thành phần 4: Cập nhật `save_outputs()` — Append chart vào Markdown
 
 > **File:** [pipeline.py](file:///d:/Project/Doc%20Anchor%20AI/src/ingestion/pipeline.py#L57-L70)
 
@@ -199,8 +199,8 @@ def save_outputs(self, result: ExtractionResult) -> tuple[Path, Path]:
 
 | Hành động | File | Mô tả |
 |-----------|------|-------|
-| **Tạo mới** | `src/ingestion/chart_region_detector.py` | ~220 dòng — OpenCV detect + crop |
-| **Sửa** | `src/ingestion/schemas/extraction_result.py` | +1 dòng field `chart_assets` |
-| **Sửa** | `src/ingestion/pipeline.py` | +~15 dòng (import + detect + crop + metadata) |
+| **Tạo mới** | `src/ingestion/chart_region_detector.py` | OpenCV detect + crop |
+| **Sửa** | `src/ingestion/schemas/extraction_result.py` | +1 field `chart_assets` |
+| **Sửa** | `src/ingestion/pipeline.py` | Gọi detector và lưu chart_assets |
 
 **Tổng code thay đổi: ~240 dòng mới, 0 dòng cũ bị sửa/xóa.**
