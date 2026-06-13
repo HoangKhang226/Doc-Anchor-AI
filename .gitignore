@@ -9,5 +9,25 @@ __pycache__/
 evaluation/ocr/data/**/*.pred.md
 evaluation/ocr/textforge_ocr_predictions/**/*.pred.md
 
-
+# Thư mục nháp
 scratch/
+data/processed/
+output/
+inference/
+
+# Ảnh test bị vứt tạm ở thư mục gốc (root)
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp
+
+# IDE & Editor cache
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python cache mở rộng
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
