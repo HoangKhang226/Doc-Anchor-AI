@@ -58,7 +58,7 @@ class TableRegionDetector:
                 os.environ["FLAGS_enable_pir_api"] = "0"
                 os.environ["PADDLE_DISABLE_MKLDNN"] = "1"
                 from paddleocr import PPStructure
-                self._engine = PPStructure(lang="vi", show_log=False, image_orientation=False, ocr=False, table=False, recovery=False)
+                self._engine = PPStructure(lang="en", show_log=False, image_orientation=False, ocr=False, table=False, recovery=False)
             except ImportError:
                 logger.error("Chưa cài đặt paddleocr (hoặc PPStructure). Không thể dùng.")
                 return None
