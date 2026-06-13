@@ -13,6 +13,7 @@ def normalize_text(text: str) -> str:
     text = re.sub(r'-{3,}', ' ', text)
     text = re.sub(r'(?<!\d)-(?!\d)', ' ', text)
     text = re.sub(r'\[\s*[xX]?\s*\]', ' ', text)
+    text = re.sub(r'\.{2,}', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
@@ -89,14 +90,24 @@ def eval_table_logic(gt: str, pred: str) -> dict:
 def extract_key_values(md_text: str) -> dict[str, str]:
     """Trích xuất cặp Key-Value từ định dạng **Key**: Value hoặc - Key: Value"""
     kv_pairs = {}
-    # Match: **Key**: Value OR - Key: Value
-    pattern = r'(?:\*\*([^*]+)\*\*\s*:\s*(.+))|(?:-\s*([^:\n]+)\s*:\s*(.+))'
+    # Match: **Key**: Value OR - Key: Value OR * Key: Value
+    pattern = r'(?:\*\*([^*]+)\*\*\s*:\s*(.+))|(?:[-*]\s*([^:\n]+)\s*:\s*(.+))'
     for match in re.finditer(pattern, md_text):
         if match.group(1): # Pattern 1
             key, val = match.group(1), match.group(2)
         else: # Pattern 2
             key, val = match.group(3), match.group(4)
         kv_pairs[normalize_text(key)] = normalize_text(val)
+        
+    # Phục hồi KIE cho form phẳng (Ground Truth thường không có bullet/bold)
+    # Ví dụ: "Tên đơn vị vay vốn: ABC"
+    pattern_flat = r'^([^:.\n]+)\s*:\s*(.*)$'
+    for match in re.finditer(pattern_flat, md_text, re.MULTILINE):
+        key = normalize_text(match.group(1))
+        val = normalize_text(match.group(2))
+        if key and key not in kv_pairs and len(key.split()) < 10:  # Key thường không quá dài
+            kv_pairs[key] = val
+            
     return kv_pairs
 
 def eval_form_logic(gt: str, pred: str) -> dict:
