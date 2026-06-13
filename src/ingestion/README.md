@@ -1,6 +1,6 @@
 # 📄 OCR4RAG — Ingestion Pipeline
 
-> **Module chuyển đổi tài liệu thô (ảnh chụp, ảnh scan, PDF) thành Markdown có cấu trúc, sẵn sàng nạp vào hệ thống RAG.**
+> **Module chuyển đổi tài liệu thô (ảnh chụp, ảnh scan) thành Markdown có cấu trúc, sẵn sàng xuất bản.**
 >
 > ⚠️ Project này **CHỈ LÀM OCR** — chuyển file đầu vào thành `.md` + `.json`. Không có Retrieval, không có Generation.
 
@@ -12,10 +12,7 @@
 
 ```mermaid
 flowchart TD
-    A["File đầu vào\n(.png/.jpg/.pdf)"] --> B["DocumentClassifier\n(classifier.py)"]
-
-    B -->|DIGITAL_PDF| C["DocumentParser\n(Docling)"]
-    B -->|CAMERA_PHOTO| D["ImagePreprocessor\n(OpenCV: CLAHE + Deskew)"]
+    A["File đầu vào\n(.png/.jpg)"] --> D["ImagePreprocessor\n(OpenCV: CLAHE + Deskew)"]
 
     D --> E["PaddleOCRExtractor\n→ list OCRBlock"]
 
@@ -36,7 +33,7 @@ flowchart TD
     K --> L["ExtractionResult"]
     L --> M["save_outputs\n→ .md + .json"]
 
-    C --> L
+
 ```
 
 ### Sơ đồ chi tiết theo Phase (có subgraph)
@@ -44,17 +41,11 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph INPUT[" Input Layer"]
-        A["Upload file\n(.png / .jpg / .jpeg / .pdf)"]
-    end
-
-    subgraph CLASSIFY[" Classification — Phase 1"]
-        B["DocumentClassifier\n(classifier.py)"]
-        B -->|"DIGITAL_PDF"| C1["DocumentParser\n(docling)"]
-        B -->|"CAMERA_PHOTO\n/ SCANNED_IMAGE"| C2["Image Pipeline"]
+        A["Upload file\n(.png / .jpg / .jpeg)"]
     end
 
     subgraph PREPROCESS["🔧 Preprocessing — Phase 2"]
-        C2 --> D["ImagePreprocessor\n(image_preprocessor.py)"]
+        A --> D["ImagePreprocessor\n(image_preprocessor.py)"]
         D -->|"CLAHE + Deskew"| E["cleaned_*.png"]
     end
 
@@ -98,7 +89,7 @@ flowchart TD
         X --> Z[" stem.json"]
     end
 
-    A --> B
+
 
     style INPUT fill:#1a1a2e,stroke:#e94560,color:#fff
     style VLM fill:#0f3460,stroke:#16213e,color:#fff
@@ -113,8 +104,6 @@ flowchart TD
 ```
 src/ingestion/
 ├── pipeline.py                    # Orchestrator chính — điều phối toàn bộ luồng (633 dòng)
-├── classifier.py                  # Phân loại đầu vào (PDF / Scan / Camera)
-├── document_parser.py             # Docling PDF parser (Happy Path)
 ├── image_preprocessor.py          # Tiền xử lý ảnh (CLAHE + Deskew bằng OpenCV)
 ├── vlm_ocr.py                     # Gọi Qwen2.5-VL qua Ollama (LangChain ChatOllama)
 ├── table_region_detection.py      # Phát hiện vùng bảng bằng OpenCV Morphology
@@ -140,23 +129,7 @@ src/ingestion/
 
 ## 🔄 9 Phase xử lý chi tiết
 
-### Phase 1: Classification
 
-```
-File → classifier.py → InputType
-```
-
-**Class:** `DocumentClassifier` — Phân loại file đầu vào dựa trên MIME type.
-
-| InputType       | Mô tả                          | Luồng xử lý               |
-| --------------- | ------------------------------ | -------------------------- |
-| `DIGITAL_PDF`   | File PDF gốc (có text layer)   | → Docling parser           |
-| `SCANNED_IMAGE` | Ảnh scan phẳng, sắc nét        | → Image Pipeline (VLM)     |
-| `CAMERA_PHOTO`  | Ảnh chụp camera (méo, mờ, lóa) | → Image Pipeline (VLM)     |
-
-> **Lưu ý:** Hiện tại toàn bộ file ảnh đều bị ép qua `CAMERA_PHOTO` để tận dụng sức mạnh VLM trong việc khôi phục dấu và dựng bảng.
-
----
 
 ### Phase 2: Preprocessing
 
@@ -181,15 +154,16 @@ cleaned_*.png → PaddleOCRExtractor → list[OCRBlock]
 
 **Class:** `PaddleOCRExtractor` — Wrapper quanh PaddleOCR:
 
-| Tính năng | Chi tiết |
-|-----------|----------|
-| **Lazy-load** | Chỉ khởi tạo engine khi cần, tránh tốn RAM khi import |
-| **Auto-fallback** | PaddleOCR 3.x (`predict()`) → 2.x (`ocr()`) tự động |
-| **Multi-language** | Map `vi/en/ch/ja/ko` sang PaddleOCR lang hợp lệ |
-| **Output chuẩn hóa** | Trả `list[OCRBlock]` thống nhất bất kể API version |
-| **Windows fix** | Tắt oneDNN/PIR để tránh lỗi trên Windows CPU |
+| Tính năng            | Chi tiết                                              |
+| -------------------- | ----------------------------------------------------- |
+| **Lazy-load**        | Chỉ khởi tạo engine khi cần, tránh tốn RAM khi import |
+| **Auto-fallback**    | PaddleOCR 3.x (`predict()`) → 2.x (`ocr()`) tự động   |
+| **Multi-language**   | Map `vi/en/ch/ja/ko` sang PaddleOCR lang hợp lệ       |
+| **Output chuẩn hóa** | Trả `list[OCRBlock]` thống nhất bất kể API version    |
+| **Windows fix**      | Tắt oneDNN/PIR để tránh lỗi trên Windows CPU          |
 
 **Vai trò:** PaddleOCR **không phải** là công cụ đọc chữ cuối cùng. Nó chỉ cung cấp **sườn ký tự + tọa độ bbox** để:
+
 - VLM dùng làm "bản nháp" chống ảo giác
 - LayoutRouter phân tích cấu trúc tài liệu
 - TableReconstruction dựng lại bảng từ vị trí
@@ -204,25 +178,25 @@ OCR Blocks → LayoutRouter → LayoutRoute
 
 **Class:** `LayoutRouter` — Decision Tree phân tích thống kê OCR blocks:
 
-| Thứ tự | Điều kiện | Layout Mode | Prompt Profile | Temperature |
-|--------|-----------|-------------|----------------|-------------|
-| 1 (Critical) | `total_blocks == 0` hoặc `avg_conf < 0.35` | `critical_fail` | `MIXED_LAYOUT` | 0.0 |
-| 2 (Quality) | `avg_conf < 0.65` | `noisy_scan` | `ANTI_HALLUCINATION_MIXED` | 0.0 |
-| 3 (Layout) | `marker_ratio > 0.15` & `aligned_ratio > 0.4` | `table_rich` | `TABLE_PRIORITY` | 0.0 |
-| 4 (Layout) | `numeric_ratio < 0.1` & `long_text_ratio > 0.7` | `clean_text` | `TEXT_PRIORITY` | 0.2 |
-| 5 (Default) | Không thuộc các trường hợp trên | `mixed_layout` | `MIXED_LAYOUT` | 0.1 |
+| Thứ tự       | Điều kiện                                       | Layout Mode     | Prompt Profile             | Temperature |
+| ------------ | ----------------------------------------------- | --------------- | -------------------------- | ----------- |
+| 1 (Critical) | `total_blocks == 0` hoặc `avg_conf < 0.35`      | `critical_fail` | `MIXED_LAYOUT`             | 0.0         |
+| 2 (Quality)  | `avg_conf < 0.65`                               | `noisy_scan`    | `ANTI_HALLUCINATION_MIXED` | 0.0         |
+| 3 (Layout)   | `marker_ratio > 0.15` & `aligned_ratio > 0.4`   | `table_rich`    | `TABLE_PRIORITY`           | 0.0         |
+| 4 (Layout)   | `numeric_ratio < 0.1` & `long_text_ratio > 0.7` | `clean_text`    | `TEXT_PRIORITY`            | 0.2         |
+| 5 (Default)  | Không thuộc các trường hợp trên                 | `mixed_layout`  | `MIXED_LAYOUT`             | 0.1         |
 
 **Metrics được tính:**
 
-| Metric | Ý nghĩa |
-|--------|---------|
-| `avg_ocr_confidence` | Độ tin cậy trung bình OCR |
-| `numeric_ratio` | Tỷ lệ block chứa số |
-| `money_ratio` | Tỷ lệ block giống số tiền |
-| `marker_ratio` | Tỷ lệ block chứa từ khóa bảng (STT, Total, VAT...) |
-| `aligned_ratio` | Tỷ lệ block nằm thẳng hàng (dấu hiệu bảng) |
-| `density_ratio` | Mật độ ký tự trên diện tích ảnh |
-| `abbreviation_ratio` | Tỷ lệ từ viết hoa hoàn toàn (mã y tế, kỹ thuật) |
+| Metric               | Ý nghĩa                                            |
+| -------------------- | -------------------------------------------------- |
+| `avg_ocr_confidence` | Độ tin cậy trung bình OCR                          |
+| `numeric_ratio`      | Tỷ lệ block chứa số                                |
+| `money_ratio`        | Tỷ lệ block giống số tiền                          |
+| `marker_ratio`       | Tỷ lệ block chứa từ khóa bảng (STT, Total, VAT...) |
+| `aligned_ratio`      | Tỷ lệ block nằm thẳng hàng (dấu hiệu bảng)         |
+| `density_ratio`      | Mật độ ký tự trên diện tích ảnh                    |
+| `abbreviation_ratio` | Tỷ lệ từ viết hoa hoàn toàn (mã y tế, kỹ thuật)    |
 
 **Dynamic Temperature:** Temperature VLM được điều chỉnh theo layout. Nếu `abbreviation_ratio > 0.35`, ép `temperature = 0.0` bất kể layout.
 
@@ -245,12 +219,12 @@ cleaned_*.png + OCR Blocks + Prompt Profile
 
 **Prompt Engineering** (`vlm_prompts.py`) — 4 lớp bảo vệ:
 
-| Lớp | Nội dung |
-|-----|---------|
-| **Core Instructions** | Output Markdown thuần, không JSON, không code block |
-| **Anti-Hallucination** | Ép dùng OCR text làm sườn, chỉ được thêm dấu, CẤM thay thế chữ |
-| **Profile Rules** | 4 profile: `TEXT_PRIORITY`, `TABLE_PRIORITY`, `ANTI_HALLUCINATION_MIXED`, `MIXED_LAYOUT` |
-| **OCR Context** | Danh sách OCR blocks kèm confidence score (max 300 blocks) |
+| Lớp                    | Nội dung                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| **Core Instructions**  | Output Markdown thuần, không JSON, không code block                                      |
+| **Anti-Hallucination** | Ép dùng OCR text làm sườn, chỉ được thêm dấu, CẤM thay thế chữ                           |
+| **Profile Rules**      | 4 profile: `TEXT_PRIORITY`, `TABLE_PRIORITY`, `ANTI_HALLUCINATION_MIXED`, `MIXED_LAYOUT` |
+| **OCR Context**        | Danh sách OCR blocks kèm confidence score (max 300 blocks)                               |
 
 **Đây là "bộ não" chính của pipeline**, chịu trách nhiệm sinh Markdown cuối cùng.
 
@@ -299,6 +273,7 @@ Raw VLM Markdown + Reconstructed Tables
 ```
 
 **OpenCV-VLM Table Validator:** So sánh cấu trúc bảng VLM vs OpenCV:
+
 - VLM không sinh bảng nhưng OpenCV có → append bảng OpenCV
 - VLM bị thiếu/thừa cột (lệch ≥ 2 so với OpenCV) → swap bằng bảng OpenCV
 - VLM bị broken pipe (số cột không đồng nhất giữa các hàng) → swap
@@ -306,6 +281,7 @@ Raw VLM Markdown + Reconstructed Tables
 **Normalize Markdown:** Loại JSON/code fence → fallback từ tables → fallback từ OCR blocks.
 
 **Cleanup for RAG:**
+
 - Chèn dòng trống trước bảng (table spacing)
 - Ép xuống dòng cứng cho text thường (`"  "` hard line breaks)
 - Khâu dấu `|` bị rớt dòng (stitch broken pipes)
@@ -324,15 +300,16 @@ ExtractionResult → _requires_human_review() → bool
 
 **Quality Classification:**
 
-| Quality Class | Điều kiện | Hành động |
-|---------------|-----------|-----------|
-| `critical_fail` | OCR conf < 0.35 hoặc output < 30 chars | Quét lại hoặc review thủ công |
-| `noisy_scan` | OCR conf < 0.65 hoặc có uncertain tokens | Preprocess nhẹ, giữ OCR gốc |
-| `table_rich` | Có bảng, ít text | Ưu tiên bbox reconstruction + VLM normalize |
-| `mixed_layout` | Vừa text vừa bảng | Tách text/table, VLM ráp cấu trúc |
-| `clean_text` | Text thuần, ít số | OCR + VLM nhẹ |
+| Quality Class   | Điều kiện                                | Hành động                                   |
+| --------------- | ---------------------------------------- | ------------------------------------------- |
+| `critical_fail` | OCR conf < 0.35 hoặc output < 30 chars   | Quét lại hoặc review thủ công               |
+| `noisy_scan`    | OCR conf < 0.65 hoặc có uncertain tokens | Preprocess nhẹ, giữ OCR gốc                 |
+| `table_rich`    | Có bảng, ít text                         | Ưu tiên bbox reconstruction + VLM normalize |
+| `mixed_layout`  | Vừa text vừa bảng                        | Tách text/table, VLM ráp cấu trúc           |
+| `clean_text`    | Text thuần, ít số                        | OCR + VLM nhẹ                               |
 
 **Confidence Report:**
+
 - `ocr_confidence` (35%) — Trung bình confidence PaddleOCR
 - `layout_confidence` (35%) — Dựa trên độ dài markdown + sanitize warnings
 - `table_confidence` (30%) — Dựa trên có bảng chuẩn hay không
@@ -354,26 +331,26 @@ ExtractionResult → save_outputs()
 
 ## 📊 Data Models (`schemas/extraction_result.py`)
 
-| Class | Các trường chính | Mô tả |
-|-------|-----------------|-------|
-| `OCRBlock` | `text`, `confidence`, `bbox`, `language` | Một block text do PaddleOCR phát hiện |
-| `ExtractedTable` | `name`, `columns`, `rows` | Bảng đã trích xuất/dựng lại |
-| `ConfidenceReport` | `ocr_confidence`, `layout_confidence`, `table_confidence`, `overall` | Điểm tin cậy tổng hợp |
-| `ExtractionResult` | `source_file`, `markdown`, `tables`, `raw_ocr`, `quality_class`, `quality_score`, `confidence`, `requires_human_review`, `metadata` | **Output cuối cùng** — chứa tất cả |
+| Class              | Các trường chính                                                                                                                    | Mô tả                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `OCRBlock`         | `text`, `confidence`, `bbox`, `language`                                                                                            | Một block text do PaddleOCR phát hiện |
+| `ExtractedTable`   | `name`, `columns`, `rows`                                                                                                           | Bảng đã trích xuất/dựng lại           |
+| `ConfidenceReport` | `ocr_confidence`, `layout_confidence`, `table_confidence`, `overall`                                                                | Điểm tin cậy tổng hợp                 |
+| `ExtractionResult` | `source_file`, `markdown`, `tables`, `raw_ocr`, `quality_class`, `quality_score`, `confidence`, `requires_human_review`, `metadata` | **Output cuối cùng** — chứa tất cả    |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Thành phần | Công nghệ | Vai trò |
-|------------|-----------|---------|
-| OCR Engine | PaddleOCR 2.x/3.x | Trích xuất text + bbox từ ảnh |
-| Vision LLM | Qwen2.5-VL 7B (via Ollama) | Sinh Markdown từ ảnh + OCR context |
-| Image Processing | OpenCV | CLAHE, Deskew, Table Region Detection |
-| PDF Parser | Docling | Parse PDF digital có text layer |
-| LLM Framework | LangChain (ChatOllama, HumanMessage) | Giao tiếp với Ollama |
-| Image Format | Pillow (PIL) | Convert WebP → JPEG |
-| Config | PyYAML | Đọc setting.yaml + logging.yaml |
+| Thành phần       | Công nghệ                            | Vai trò                               |
+| ---------------- | ------------------------------------ | ------------------------------------- |
+| OCR Engine       | PaddleOCR 2.x/3.x                    | Trích xuất text + bbox từ ảnh         |
+| Vision LLM       | Qwen2.5-VL 7B (via Ollama)           | Sinh Markdown từ ảnh + OCR context    |
+| Image Processing | OpenCV                               | CLAHE, Deskew, Table Region Detection |
+| PDF Parser       | Docling                              | Parse PDF digital có text layer       |
+| LLM Framework    | LangChain (ChatOllama, HumanMessage) | Giao tiếp với Ollama                  |
+| Image Format     | Pillow (PIL)                         | Convert WebP → JPEG                   |
+| Config           | PyYAML                               | Đọc setting.yaml + logging.yaml       |
 
 ---
 
@@ -383,8 +360,8 @@ ExtractionResult → save_outputs()
 llm:
   ollama:
     base_url: "http://localhost:11434"
-    model: "qwen2.5:7b"         # LLM text thường
-    vlm_model: "qwen2.5vl:7b"   # Vision Language Model
+    model: "qwen2.5:7b" # LLM text thường
+    vlm_model: "qwen2.5vl:7b" # Vision Language Model
     embed_model: "nomic-embed-text"
 
 # Cấu hình OCR (đọc qua settings.get())
@@ -412,6 +389,7 @@ python scratch/test_batch.py
 ```
 
 Output lưu tại:
+
 - `data/processed/{tên_ảnh}.md` — Markdown
 - `data/processed/{tên_ảnh}.json` — JSON metadata
 
@@ -423,6 +401,7 @@ python evaluation/ocr/scripts/score_only.py       # Tính CER/WER/Sim/TokenSim
 ```
 
 Kết quả benchmark trên 50 tài liệu `custom_doc_anchor_ai`:
+
 - **Number F1:** 90.22%
 - **Content Score:** 83.58%
 - **Similarity:** 86.06%

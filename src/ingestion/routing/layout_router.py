@@ -12,7 +12,7 @@ Nó chỉ đọc signal từ OCR blocks để quyết định strategy:
 
 Đồng thời router trả về recommended_temperature cho VLM dựa trên đặc thù layout:
 - Bảng biểu / scan nhiễu: temperature = 0.0 (cấm sáng tạo, bám sát OCR)
-- Text thuần: temperature = 0.2 (cho phép hành văn mượt mà cho RAG)
+- Text thuần: temperature = 0.2 (cho phép hành văn mượt mà)
 - Hỗn hợp: temperature = 0.1 (cân bằng)
 """
 
@@ -29,7 +29,7 @@ LAYOUT_TEMPERATURE_MAP: dict[str, float] = {
     "critical_fail": 0.0,       # Ảnh quá tệ -> bắt buộc bám sát OCR thô
     "noisy_scan": 0.0,          # Scan nhiễu -> cấm sáng tạo số liệu
     "table_rich": 0.0,          # Nhiều bảng biểu -> ép khuôn cấu trúc tuyệt đối
-    "clean_text": 0.2,          # Văn bản thuần -> cho phép hành văn mượt mà cho RAG
+    "clean_text": 0.2,          # Văn bản thuần -> cho phép hành văn mượt mà
     "mixed_layout": 0.1,        # Bố cục hỗn hợp -> mức an toàn cân bằng
 }
 

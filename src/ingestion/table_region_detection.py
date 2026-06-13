@@ -81,14 +81,11 @@ class TableRegionDetector:
         grid = cv2.bitwise_or(horizontal, vertical)
         grid = cv2.morphologyEx(grid, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=2)
 
-        regions = self._contours_to_regions(grid, image.shape[:2])
-        if regions:
-            return regions
+        # Tính toán các điểm giao cắt giữa đường ngang và dọc
+        intersections = cv2.bitwise_and(horizontal, vertical)
 
-        # Fallback nhẹ: dùng Canny + morphology nếu lưới bảng quá yếu.
-        edges = cv2.Canny(gray, 50, 150)
-        fallback = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8), iterations=2)
-        return self._contours_to_regions(fallback, image.shape[:2])
+        regions = self._contours_to_regions(grid, image.shape[:2], intersections)
+        return regions
 
     def _extract_lines(self, binary: np.ndarray, axis: str) -> np.ndarray:
         h, w = binary.shape[:2]
@@ -102,7 +99,7 @@ class TableRegionDetector:
         extracted = cv2.dilate(extracted, kernel, iterations=1)
         return extracted
 
-    def _contours_to_regions(self, mask: np.ndarray, image_shape: tuple[int, int]) -> list[TableRegion]:
+    def _contours_to_regions(self, mask: np.ndarray, image_shape: tuple[int, int], intersections: np.ndarray = None) -> list[TableRegion]:
         h, w = image_shape
         area_total = float(h * w)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -127,6 +124,15 @@ class TableRegionDetector:
             y1 = max(0, y - pad_y)
             x2 = min(w, x + bw + pad_x)
             y2 = min(h, y + bh + pad_y)
+
+            # Ràng buộc Bảng phải có lưới kẻ (ít nhất 4 điểm giao cắt)
+            if intersections is not None:
+                roi = intersections[y1:y2, x1:x2]
+                _, intersection_contours, _ = cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE) if cv2.__version__.startswith('3') else (None, *cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE))
+                intersection_contours = cv2.findContours(roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)[0]
+                if len(intersection_contours) < 4:
+                    continue
+
             score = min(1.0, area / max(1.0, area_total * 0.1))
             regions.append(TableRegion(bbox=(x1, y1, x2, y2), score=round(score, 3)))
 
@@ -172,6 +178,32 @@ class TableRegionDetector:
         return inter_area / max(1.0, float(area_a + area_b - inter_area))
 
 
+def get_bbox_bounds(bbox: Any) -> tuple[float, float, float, float]:
+    """Trích xuất x_min, y_min, x_max, y_max một cách an toàn từ nhiều định dạng bbox."""
+    if not bbox:
+        return 0.0, 0.0, 0.0, 0.0
+    
+    if isinstance(bbox, str):
+        import json
+        try:
+            bbox = json.loads(bbox)
+        except Exception:
+            return 0.0, 0.0, 0.0, 0.0
+            
+    if isinstance(bbox, (list, tuple)):
+        # Nếu là mảng 1 chiều 4 phần tử [x1, y1, x2, y2]
+        if len(bbox) == 4 and isinstance(bbox[0], (int, float)):
+            return float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
+        # Nếu là mảng 2 chiều [[x1, y1], [x2, y2], ...]
+        if len(bbox) > 0 and isinstance(bbox[0], (list, tuple)):
+            try:
+                xs = [float(p[0]) for p in bbox]
+                ys = [float(p[1]) for p in bbox]
+                return min(xs), min(ys), max(xs), max(ys)
+            except (IndexError, TypeError):
+                pass
+    return 0.0, 0.0, 0.0, 0.0
+
 def crop_ocr_blocks_to_region(ocr_blocks: list[Any], region: TableRegion) -> list[Any]:
     """Lấy các OCR blocks có tâm nằm trong bbox region."""
     selected: list[Any] = []
@@ -179,10 +211,10 @@ def crop_ocr_blocks_to_region(ocr_blocks: list[Any], region: TableRegion) -> lis
     for block in ocr_blocks:
         if not getattr(block, "bbox", None):
             continue
-        xs = [point[0] for point in block.bbox]
-        ys = [point[1] for point in block.bbox]
-        center_x = (min(xs) + max(xs)) / 2.0
-        center_y = (min(ys) + max(ys)) / 2.0
+        
+        bx_min, by_min, bx_max, by_max = get_bbox_bounds(block.bbox)
+        center_x = (bx_min + bx_max) / 2.0
+        center_y = (by_min + by_max) / 2.0
         if x1 <= center_x <= x2 and y1 <= center_y <= y2:
             selected.append(block)
     return selected

@@ -7,15 +7,16 @@ pydantic-settings>=2.0
 PyYAML>=6.0
 
 # Tầng: Ingestion & Layout Parsing
-docling>=2.0
 numpy==1.26.4
 opencv-python>=4.8
 Pillow>=10.0
 kornia>=0.7
-pymupdf>=1.24
-pdfplumber>=0.11
 rapidfuzz>=3.9
 python-dateutil>=2.9
+
+# Phụ thuộc OCR (Bat buộc cho Table/Chart Isolation)
+paddlepaddle>=2.6.0
+paddleocr>=2.7.0
 
 # Tầng: VLM OCR (via Ollama)
 langchain-ollama>=0.3

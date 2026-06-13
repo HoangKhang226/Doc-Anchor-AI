@@ -56,24 +56,29 @@ class PaddleOCRExtractor:
         device = "gpu" if self.use_gpu else "cpu"
         logger.info(f"Khởi tạo PaddleOCR lang={lang}, device={device}")
 
+        import os
+        os.environ["FLAGS_enable_pir_api"] = "0"
+
         try:
             self._ocr = PaddleOCR(
                 lang=lang,
                 device=device,
                 use_angle_cls=True,
-                use_doc_orientation_classify=True,
-                use_doc_unwarping=False,
-                use_textline_orientation=True,
+                use_textline_orientation=False,
+                enable_mkldnn=False,
             )
             self._api_version = 3
             return self._ocr
-        except TypeError as exc:
-            logger.warning(f"PaddleOCR 3.x constructor không tương thích, fallback 2.x: {exc}")
+        except (TypeError, ValueError) as exc:
+            logger.warning(f"PaddleOCR 3.x constructor lỗi tham số, fallback 2.x: {exc}")
 
         try:
-            self._ocr = PaddleOCR(use_angle_cls=True, lang=lang)
-        except TypeError:
-            self._ocr = PaddleOCR(lang=lang)
+            self._ocr = PaddleOCR(use_angle_cls=True, use_textline_orientation=False, enable_mkldnn=False, lang=lang)
+        except (TypeError, ValueError):
+            try:
+                self._ocr = PaddleOCR(lang=lang, enable_mkldnn=False)
+            except Exception as inner_exc:
+                raise RuntimeError(f"Không thể khởi tạo PaddleOCR: {inner_exc}")
         self._api_version = 2
         return self._ocr
 
@@ -142,7 +147,19 @@ class PaddleOCRExtractor:
 
             for idx, text in enumerate(texts):
                 confidence = float(scores[idx]) if idx < len(scores) else 0.0
-                bbox = boxes[idx].tolist() if idx < len(boxes) and hasattr(boxes[idx], "tolist") else (boxes[idx] if idx < len(boxes) else [])
+                raw_box = boxes[idx] if idx < len(boxes) else []
+                if hasattr(raw_box, "tolist"):
+                    bbox = raw_box.tolist()
+                elif isinstance(raw_box, str):
+                    import json
+                    try:
+                        bbox = json.loads(raw_box)
+                    except Exception:
+                        bbox = []
+                else:
+                    bbox = raw_box
+                    
                 if str(text).strip():
+                    blocks.append(OCRBlock(text=str(text).strip(), confidence=confidence, bbox=bbox))
                     blocks.append(OCRBlock(text=str(text).strip(), confidence=confidence, bbox=bbox))
         return blocks

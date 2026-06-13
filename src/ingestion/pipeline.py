@@ -1,6 +1,6 @@
 """
 Doc Anchor AI — Local Hybrid Ingestion Pipeline
-Kết hợp Docling/PDF text, PaddleOCR, VLM và validator cho trích xuất đa ngôn ngữ local.
+Kết hợp PaddleOCR, OpenCV Morphology, VLM và validator cho trích xuất hình ảnh tài liệu.
 """
 
 from __future__ import annotations
@@ -12,8 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import settings, get_logger
-from src.ingestion.classifier import DocumentClassifier, InputType
-from src.ingestion.document_parser import DocumentParser
+
 from src.ingestion.image_preprocessor import ImagePreprocessor
 from src.ingestion.vlm_ocr import VLMOCRProcessor
 from src.ingestion.extractors import PaddleOCRExtractor
@@ -22,6 +21,7 @@ from src.ingestion.routing import LayoutRoute, LayoutRouter
 from src.ingestion.schemas import ConfidenceReport, ExtractedTable, ExtractionResult, OCRBlock
 from src.ingestion.table_reconstruction import reconstruct_tables_from_ocr
 from src.ingestion.table_region_detection import TableRegionDetector, crop_ocr_blocks_to_region
+from src.ingestion.chart_region_detector import ChartRegionDetector
 
 logger = get_logger(__name__)
 
@@ -32,26 +32,21 @@ class IngestionPipeline:
     def __init__(self):
         self.processed_dir = Path(settings.get("storage.data.processed_dir", "data/processed"))
         self.processed_dir.mkdir(parents=True, exist_ok=True)
-        self.classifier = DocumentClassifier()
         self.layout_router = LayoutRouter()
 
     def run(self, file_path: str | Path) -> ExtractionResult:
-        """Chạy extraction end-to-end và trả ExtractionResult."""
+        """Chạy extraction end-to-end cho file ảnh và trả ExtractionResult."""
         start_time = time.time()
         path = Path(file_path)
-        input_type = self.classifier.classify(path)
-        logger.info(f"[IngestionPipeline] Input type: {input_type}")
+        logger.info(f"[IngestionPipeline] Processing image: {path.name}")
 
-        if input_type == InputType.DIGITAL_PDF:
-            result = self._extract_digital_pdf(path)
-        else:
-            result = self._extract_image_like(path)
+        result = self._extract_image_like(path)
 
         result.quality_class, result.quality_score, result.issue_flags, result.recommended_action = self._classify_quality(result)
         result.confidence = self._calculate_confidence(result)
         result.requires_human_review = self._requires_human_review(result)
         result.metadata["elapsed_seconds"] = round(time.time() - start_time, 2)
-        result.metadata["input_type"] = str(input_type)
+        result.metadata["input_type"] = "image"
         return result
 
     def save_outputs(self, result: ExtractionResult) -> tuple[Path, Path]:
@@ -60,47 +55,23 @@ class IngestionPipeline:
         md_path = self.processed_dir / f"{stem}.md"
         json_path = self.processed_dir / f"{stem}.json"
 
+        md_content = result.markdown
+        
+        # === Chart Isolation (Phase 6b) ===
+        if result.chart_assets:
+            md_content += "\n\n## 📊 Biểu đồ trong tài liệu\n\n"
+            for asset in result.chart_assets:
+                filename = Path(asset['path']).name
+                md_content += f"![Biểu đồ {asset['index']}](assets/{filename})\n\n"
+
         with open(md_path, "w", encoding="utf-8") as f:
-            f.write(result.markdown)
+            f.write(md_content)
 
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(result.to_dict(), f, ensure_ascii=False, indent=2)
 
         logger.info(f"Đã lưu output: {md_path}, {json_path}")
         return md_path, json_path
-
-    def index_result(self, result: ExtractionResult) -> None:
-        """Index final Markdown vào Qdrant."""
-        from src.retrieval.chunker import DocumentChunker
-        from src.retrieval.indexer import VectorIndexer
-
-        chunker = DocumentChunker(
-            chunk_size=settings.get("rag.chunking.parent.chunk_size", 2000),
-            chunk_overlap=settings.get("rag.chunking.parent.chunk_overlap", 200),
-        )
-        chunks = chunker.chunk(
-            result.markdown,
-            source_metadata={
-                "source_file": result.source_file,
-                "document_type": result.document_type,
-                "confidence": result.confidence.overall,
-                "requires_human_review": result.requires_human_review,
-            },
-        )
-        VectorIndexer().index(chunks)
-        logger.info(f"Đã index {len(chunks)} chunks vào Vector DB.")
-
-    def _extract_digital_pdf(self, path: Path) -> ExtractionResult:
-        """PDF digital: ưu tiên Docling parser."""
-        parser = DocumentParser()
-        markdown = parser.parse(path)
-        result = ExtractionResult(
-            source_file=path.name,
-            document_type="unknown",
-            markdown=markdown,
-            metadata={"engine": "docling"},
-        )
-        return result
 
     def _extract_image_like(self, path: Path) -> ExtractionResult:
         """Ảnh/PDF scan: preprocess nhẹ -> PaddleOCR -> VLM JSON-first."""
@@ -134,6 +105,18 @@ class IngestionPipeline:
             table_regions,
         )
 
+        # === Chart Isolation (Phase 6b) ===
+        chart_detector = ChartRegionDetector()
+        chart_regions = chart_detector.detect(
+            cleaned_img_path,
+            ocr_blocks,
+            table_bboxes=[r.bbox for r in table_regions],
+        )
+        assets_dir = self.processed_dir / "assets"
+        chart_assets = chart_detector.crop_and_save(
+            cleaned_img_path, chart_regions, assets_dir, path.stem,
+        )
+
         # Tính năng 4: OpenCV-VLM Table Validator — validate cấu trúc bảng trước khi normalize
         vlm_response = self._validate_and_fallback_tables(vlm_response, reconstructed_tables)
 
@@ -162,6 +145,7 @@ class IngestionPipeline:
             markdown=markdown,
             fields={},
             tables=reconstructed_tables,
+            chart_assets=chart_assets,
             raw_ocr=ocr_blocks,
             uncertain_tokens=self._extract_uncertain_tokens(markdown),
             quality_class=route.quality_class,
@@ -186,6 +170,10 @@ class IngestionPipeline:
                     {"bbox": region.bbox, "score": region.score, "source": region.source}
                     for region in table_regions
                 ],
+                "chart_regions": [
+                    {"bbox": r.bbox, "score": r.score} for r in chart_regions
+                ],
+                "chart_assets": chart_assets,
             },
         )
         return result
@@ -267,7 +255,9 @@ class IngestionPipeline:
             markdown = "\n".join(f"- {block.text}" for block in ocr_blocks if block.text.strip())
 
         if markdown:
-            cleaned_markdown, cleanup_warnings = self._cleanup_markdown_for_rag(markdown, ocr_blocks)
+            # 4. Cleanup markdown
+            logger.info("Dọn dẹp Markdown đầu ra...")
+            cleaned_markdown, cleanup_warnings = self._cleanup_markdown(markdown, ocr_blocks)
             markdown = cleaned_markdown
             warnings.extend(cleanup_warnings)
 
@@ -419,12 +409,17 @@ class IngestionPipeline:
         return bullet_lines_with_data >= 5
 
 
-    def _cleanup_markdown_for_rag(self, markdown: str, ocr_blocks: list[OCRBlock]) -> tuple[str, list[str]]:
-        """Làm sạch markdown đầu ra để giảm bullet spam và noise OCR trước khi nạp RAG."""
+    def _cleanup_markdown(self, markdown: str, ocr_blocks: list[OCRBlock]) -> tuple[str, list[str]]:
+        """Làm sạch markdown đầu ra để giảm bullet spam và noise OCR."""
         warnings: list[str] = []
         
-        # P2 Fix: Xóa tag rác do VLM tự sinh khi gặp khoảng trống
-        text = markdown.replace("[uncertain:]", "").replace("[uncertain]", "")
+        # P1 Fix: Strip Model Artifacts — quét và triệt tiêu toàn bộ meta-tag tự sinh của VLM
+        # Bao phủ nhiều model: Qwen ([uncertain:]), InternVL (<box>), Gemma ([unrecognized]), v.v.
+        text = re.sub(r'\[uncertain:[^\]]*\]', '', markdown)
+        text = re.sub(r'\[unrecognized[^\]]*\]', '', text)
+        text = re.sub(r'<box>.*?</box>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<ref>.*?</ref>', '', text, flags=re.DOTALL)
+        text = re.sub(r'</?(?:box|ref|ocr|region)>', '', text)
         # Thu gọn dấu chấm dài (VLM hay bị ảo giác vẽ dấu chấm)
         text = re.sub(r'\.{4,}', '...', text)
         
@@ -545,10 +540,11 @@ class IngestionPipeline:
                 )
                 continue
 
-            # P1 Fix: Kiểm tra lặp bị cắt đứt (cutoff) do EOF
-            # Nếu khối hiện tại là một phần (prefix) của một khối đã thấy trước đó
+            # P0 Fix: Kiểm tra lặp bị cắt đứt (cutoff) do EOF
+            # Cửa sổ trượt: so sánh khối hiện tại với phần đầu của các khối đã thấy
             is_cutoff_duplicate = False
             for seen_fp, sec_idx in seen_fingerprints.items():
+                # Exact prefix match (nhanh)
                 if seen_fp.startswith(fingerprint):
                     is_cutoff_duplicate = True
                     removed_count += 1
@@ -557,6 +553,23 @@ class IngestionPipeline:
                         f"bản gốc ở section #{sec_idx}"
                     )
                     break
+                # Fuzzy match: khối hiện tại tương đồng >80% với phần đầu của khối đã thấy
+                # (bắt trường hợp VLM sinh lại nội dung hơi khác chút ít)
+                if len(fingerprint) < len(seen_fp):
+                    window = seen_fp[:len(fingerprint)]
+                    try:
+                        from rapidfuzz import fuzz
+                        similarity = fuzz.ratio(fingerprint, window)
+                    except ImportError:
+                        similarity = 0
+                    if similarity > 80:
+                        is_cutoff_duplicate = True
+                        removed_count += 1
+                        logger.warning(
+                            f"[Dedup] Xóa khối lặp fuzzy ({similarity:.0f}% match, "
+                            f"{len(fingerprint)} chars), bản gốc ở section #{sec_idx}"
+                        )
+                        break
             
             if is_cutoff_duplicate:
                 continue

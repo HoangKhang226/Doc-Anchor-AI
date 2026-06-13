@@ -51,6 +51,7 @@ class ExtractionResult:
     markdown: str = ""
     fields: dict[str, Any] = field(default_factory=dict)
     tables: list[ExtractedTable] = field(default_factory=list)
+    chart_assets: list[dict] = field(default_factory=list)
     raw_ocr: list[OCRBlock] = field(default_factory=list)
     uncertain_tokens: list[str] = field(default_factory=list)
     quality_class: str = "unknown"

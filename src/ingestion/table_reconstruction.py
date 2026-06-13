@@ -2,7 +2,7 @@
 Doc Anchor AI — Heuristic table reconstruction from OCR bounding boxes.
 
 Module này độc lập với prompt/VLM. Nó chỉ dùng hình học bbox để phát hiện
-cụm bảng và dựng Markdown table tuyến tính, phù hợp làm fallback cho RAG.
+cụm bảng và dựng Markdown table tuyến tính, phù hợp xuất Markdown thuần.
 """
 
 from __future__ import annotations
@@ -293,7 +293,7 @@ def _linear_text_markdown(geoms: list[_BlockGeom]) -> str:
     """Dựng lại văn bản tuyến tính sạch hơn khi bảng không đủ tin cậy.
 
     Fallback này ưu tiên dữ liệu bảng/giá trị giao dịch và chủ động loại bớt
-    header/footer hành chính để giảm nhiễu khi đưa vào embedding/RAG.
+    header/footer hành chính để giảm nhiễu khi xuất Markdown.
     """
     if not geoms:
         return ""

@@ -20,30 +20,34 @@ class ImagePreprocessor:
 
     @staticmethod
     def deskew(image: np.ndarray) -> np.ndarray:
-        """Xoay thẳng ảnh dựa trên góc nghiêng của các đoạn text."""
-        gray_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        coords = np.column_stack(np.where(thresh > 0))
-        if coords.size == 0:
-            return image
-
-        angle = cv2.minAreaRect(coords)[-1]
-
-        if angle > 45:
-            angle = angle - 90
-
-        if abs(angle) < 0.5:
-            return image
-
-        (h, w) = image.shape[:2]
-        center = (w // 2, h // 2)
-        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        rotated = cv2.warpAffine(
-            image, M, (w, h),
-            flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
-        )
-        logger.info(f"Đã xoay ảnh một góc {angle:.2f} độ.")
-        return rotated
+        """Xoay thẳng ảnh (micro-skew) bằng HoughLinesP chỉ đo các đường ngang, tránh méo biểu đồ."""
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10)
+        
+        if lines is not None:
+            angles = []
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+                # Chỉ lấy các đường kẻ hoặc dòng chữ nằm ngang (độ lệch từ -15 đến 15 độ)
+                if -15 < angle < 15:
+                    angles.append(angle)
+            
+            if angles:
+                median_angle = np.median(angles)
+                # Chỉ xoay nếu góc lệch đáng kể (> 0.5 độ)
+                if abs(median_angle) > 0.5:
+                    (h, w) = image.shape[:2]
+                    center = (w // 2, h // 2)
+                    M = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+                    rotated = cv2.warpAffine(
+                        image, M, (w, h),
+                        flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+                    )
+                    logger.info(f"Đã xoay thẳng ảnh bằng HoughLinesP: {median_angle:.2f} độ.")
+                    return rotated
+        return image
 
     @staticmethod
     def enhance_brightness_if_dark(image: np.ndarray) -> np.ndarray:

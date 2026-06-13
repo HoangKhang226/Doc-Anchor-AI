@@ -63,7 +63,7 @@ def build_financial_extraction_prompt(
     profile_rules = _profile_rules(prompt_profile)
     return f"""
 You are a highly capable local, multilingual document OCR system.
-Your ONLY task is to read the provided image and output strict, clean, structured Markdown for RAG ingestion.
+Your ONLY task is to read the provided image and output strict, clean, structured Markdown.
 
 !!! CRITICAL INSTRUCTIONS !!!
 - Output ONLY pure Markdown. NO JSON formats.
