@@ -9,3 +9,5 @@ __pycache__/
 evaluation/ocr/data/**/*.pred.md
 evaluation/ocr/textforge_ocr_predictions/**/*.pred.md
 *.md
+
+scratch/
