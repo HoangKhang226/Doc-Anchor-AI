@@ -42,19 +42,27 @@ def eval_standard_logic(gt: str, pred: str) -> dict:
         "sim_token": fuzz.token_sort_ratio(norm_gt, norm_pred) / 100.0
     }
 
-def extract_markdown_tables(md_text: str) -> list[list[str]]:
-    """Trích xuất tất cả các ô (cells) từ Markdown Table."""
+def extract_markdown_tables(md_text: str) -> list[str]:
+    """Trích xuất tất cả các ô (cells) từ Markdown Table (bao gồm cả open tables)."""
     cells = []
     lines = md_text.split('\n')
     for line in lines:
         line = line.strip()
-        if line.startswith('|') and line.endswith('|'):
-            # Bỏ qua dòng phân cách bảng (---|---|---)
-            if re.match(r'^\|[\s\-\|]+\|$', line):
+        if '|' in line:
+            # Bỏ qua dòng phân cách bảng (ví dụ: ---|---|--- hoặc |---|---|)
+            if re.match(r'^[\s\-\|]+$', line) and '-' in line:
                 continue
-            # Tách các ô, bỏ ô rỗng ở đầu và cuối do ký tự |
-            row_cells = [c.strip() for c in line.split('|')[1:-1]]
-            cells.extend(row_cells)
+            
+            raw_cells = line.split('|')
+            if len(raw_cells) > 1:
+                row_cells = [c.strip() for c in raw_cells]
+                # Nếu bảng chuẩn có viền (bắt đầu/kết thúc bằng |), các ô ngoài cùng sẽ trống -> loại bỏ
+                if line.startswith('|') and not row_cells[0]:
+                    row_cells.pop(0)
+                if line.endswith('|') and row_cells and not row_cells[-1]:
+                    row_cells.pop(-1)
+                
+                cells.extend(row_cells)
     return [normalize_text(c) for c in cells if c.strip()]
 
 def eval_table_logic(gt: str, pred: str) -> dict:
@@ -65,19 +73,32 @@ def eval_table_logic(gt: str, pred: str) -> dict:
     gt_cells = extract_markdown_tables(gt)
     pred_cells = extract_markdown_tables(pred)
     
-    # Tính Table Cell F1 Score (Độ chính xác của việc bóc từng ô)
+    # Tính Table Cell F1 Score bằng Fuzzy Matching
     if not gt_cells and not pred_cells:
         cell_f1 = 1.0
     elif not gt_cells or not pred_cells:
         cell_f1 = 0.0
     else:
-        # Đếm số ô trùng khớp
-        gt_set = set(gt_cells)
-        pred_set = set(pred_cells)
+        matched_cells = 0
+        available_gt_cells = gt_cells.copy()
         
-        true_positives = len(gt_set.intersection(pred_set))
-        precision = true_positives / len(pred_set) if pred_set else 0.0
-        recall = true_positives / len(gt_set) if gt_set else 0.0
+        for pred_c in pred_cells:
+            best_match_idx = -1
+            best_score = 0
+            
+            for idx, gt_c in enumerate(available_gt_cells):
+                score = fuzz.ratio(pred_c, gt_c)
+                if score > best_score:
+                    best_score = score
+                    best_match_idx = idx
+                    
+            # Ngưỡng 80% để chấp nhận lỗi nhỏ từ OCR (vd: sai 1 dấu phẩy)
+            if best_score >= 80 and best_match_idx != -1:
+                matched_cells += 1
+                available_gt_cells.pop(best_match_idx)
+                
+        precision = matched_cells / len(pred_cells) if pred_cells else 0.0
+        recall = matched_cells / len(gt_cells) if gt_cells else 0.0
         
         if precision + recall == 0:
             cell_f1 = 0.0
