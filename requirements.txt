@@ -15,7 +15,7 @@ rapidfuzz>=3.9
 python-dateutil>=2.9
 
 # Phụ thuộc OCR (Bat buộc cho Table/Chart Isolation)
-paddlepaddle>=2.6.0
+paddlepaddle-gpu>=2.6.0
 paddleocr>=2.7.0
 
 # Tầng: VLM OCR (via Ollama)
