@@ -209,6 +209,25 @@ def main():
             print(f.read())
             
         print(f"\n📁 Đã lưu file báo cáo chi tiết tại: {txt_report_file}")
+        
+        # --- TỰ ĐỘNG NÉN FILE ZIP TRÊN COLAB ---
+        import shutil
+        zip_path = Path("evaluation/ocr/benchmark_results")
+        print("\n📦 Đang nén toàn bộ kết quả thành file ZIP...")
+        # Tạo thư mục tạm để gom các file báo cáo
+        temp_dir = Path("evaluation/ocr/temp_zip")
+        temp_dir.mkdir(exist_ok=True, parents=True)
+        shutil.copy(txt_report_file, temp_dir / "eval_report.txt")
+        if report_file.exists():
+            shutil.copy(report_file, temp_dir / "eval_report.json")
+        
+        # Nén thành benchmark_results.zip
+        shutil.make_archive(str(zip_path), 'zip', str(temp_dir))
+        
+        # Xóa thư mục tạm
+        shutil.rmtree(temp_dir)
+        print(f"✅ Đã nén xong! File ZIP nằm tại: {zip_path}.zip (Hãy tải file này về máy)")
+        
     else:
         print("Chưa có kết quả nào được ghi nhận.")
 
