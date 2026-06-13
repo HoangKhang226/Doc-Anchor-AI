@@ -1,6 +1,6 @@
 from rapidfuzz import fuzz
 from rapidfuzz.distance import Levenshtein
-
+import re
 def normalize_text(text: str) -> str:
     """Chuẩn hóa text: Loại bỏ tất cả noise từ Markdown formatting."""
     if not text:
