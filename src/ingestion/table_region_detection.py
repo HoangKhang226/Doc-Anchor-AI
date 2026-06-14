@@ -60,7 +60,7 @@ class TableRegionDetector:
                 from paddleocr import PPStructure
                 self._engine = PPStructure(lang="en", show_log=False, image_orientation=False, ocr=False, table=False, recovery=False)
             except ImportError:
-                logger.error("Chưa cài đặt paddleocr (hoặc PPStructure). Không thể dùng.")
+                logger.debug("Không tìm thấy module PPStructure. Sẽ bỏ qua và dùng thuật toán fallback.")
                 return None
         return self._engine
 

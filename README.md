@@ -15,7 +15,7 @@ Bằng cách chuyển đổi ảnh chụp tài liệu thô thành định dạng
 | Ngôn ngữ                  | Python 3.12            |
 | Thị giác Máy tính         | OpenCV                 |
 | Nhận dạng Chữ viết (OCR)  | PaddleOCR (PP-OCR)     |
-| Mô hình Ngôn ngữ Thị giác | Gemini / Custom VLMs   |
+| Mô hình Ngôn ngữ Thị giác | Qwen(VLM 2.5-7B)       |
 | Đo lường & Đánh giá       | RapidFuzz, Levenshtein |
 
 ---

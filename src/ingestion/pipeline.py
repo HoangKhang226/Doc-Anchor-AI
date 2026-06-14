@@ -121,7 +121,7 @@ class IngestionPipeline:
         chart_mode = "crop_only"
         if chart_regions:
             print(f"\n" + "="*60)
-            print(f"🔥 [HITL] Đã phát hiện {len(chart_regions)} BIỂU ĐỒ trong ảnh {path.name}!")
+            print(f" [HITL] Đã phát hiện {len(chart_regions)} BIỂU ĐỒ trong ảnh {path.name}!")
             print("Vui lòng chọn chế độ xử lý biểu đồ:")
             print("  [1] Chỉ lưu ảnh biểu đồ (crop_only) - Mặc định")
             print("  [2] Chỉ bóc tách SỐ LIỆU THÔ (data_only) - Bỏ ảnh")

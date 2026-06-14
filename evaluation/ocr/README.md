@@ -20,7 +20,7 @@
 - **Label Recall trung bình:** 73.63%
 - **Content Score trung bình:** **83.58%**
 
-## 1.5. Kết quả Benchmark Mở rộng (Categorized Dataset - 80 files)
+## 2. Kết quả Benchmark Mở rộng (Categorized Dataset - 80 files)
 
 Đánh giá mở rộng trên tập dữ liệu đa dạng hơn (đã lọc bỏ các file nhiễu nặng), bao gồm 4 danh mục cốt lõi (20 file mỗi danh mục):
 

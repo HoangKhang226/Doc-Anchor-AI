@@ -89,8 +89,8 @@ async def extract_document(file: UploadFile = File(...)):
             "issue_flags": result.issue_flags,
             "recommended_action": result.recommended_action,
             "requires_human_review": result.requires_human_review,
-            "layout_mode": result.layout_mode,
-            "processing_time_ms": result.processing_time_ms,
+            "layout_mode": result.metadata.get("layout_mode", "unknown"),
+            "processing_time_ms": result.metadata.get("elapsed_seconds", 0) * 1000,
             "metadata": result.metadata
         }
     except Exception as e:
