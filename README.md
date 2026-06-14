@@ -73,7 +73,7 @@ python main.py
 
 ---
 
-## Đánh giá Hiệu năng (Benchmark)
+## Benchmark
 
 Hiệu năng của toàn bộ quy trình được đánh giá khắt khe thông qua một tập dữ liệu tùy chỉnh gồm 76 tài liệu doanh nghiệp thực tế, được phân loại thành Biểu mẫu (Forms), Bố cục hỗn hợp (Mixed Layouts), Văn bản thuần (Pure Text), và Bảng biểu (Tables).
 
