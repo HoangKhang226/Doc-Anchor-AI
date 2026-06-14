@@ -189,24 +189,9 @@ class ChartRegionDetector:
             pass1_binary, thresholds, img_h, img_w, "pass1_subtractive"
         )
 
-        # ================================================================
-        # PASS 2: Additive (KHÔNG mask gì cả) — bắt chart bị sót do Lỗi 6
-        # ================================================================
-        pass2_candidates = self._detect_from_binary(
-            binary.copy(), thresholds, img_h, img_w, "pass2_raw"
-        )
-
-        # ================================================================
-        # MERGE: Gộp kết quả 2 pass, ưu tiên pass1
-        # ================================================================
+        # Đã xóa PASS 2 (Additive) vì nó đưa rác (đoạn văn, bảng biểu) vào kết quả.
+        # Các biểu đồ chuẩn chỉ nên được lấy từ PASS 1 (Subtractive).
         all_candidates = list(pass1_candidates)
-        for c2 in pass2_candidates:
-            # Chỉ thêm candidate từ pass2 nếu nó không trùng với pass1
-            is_duplicate = any(
-                _iou(c2.bbox, c1.bbox) > 0.3 for c1 in all_candidates
-            )
-            if not is_duplicate:
-                all_candidates.append(c2)
 
         # ================================================================
         # FILTER: Áp dụng bộ lọc Heuristics thông minh
@@ -218,11 +203,14 @@ class ChartRegionDetector:
 
         # Loại bỏ hộp lồng nhau
         final = self._remove_nested(filtered)
+        
+        # Gộp các vùng gần nhau (merge nearby) để tránh cắt chart thành nhiều mảnh
+        final = self._merge_nearby_boxes(final, max_dim * 0.05) # Khoảng cách tối đa 5% cạnh dài
 
         logger.info(
             f"Chart Detection v2.0: {len(final)} region(s) "
-            f"[pass1={len(pass1_candidates)}, pass2={len(pass2_candidates)}, "
-            f"merged={len(all_candidates)}, filtered={len(filtered)}] "
+            f"[pass1={len(pass1_candidates)}, "
+            f"filtered={len(filtered)}] "
             f"from: {path}"
         )
         return final
@@ -391,10 +379,10 @@ class ChartRegionDetector:
 
             text_density = text_area / max(1, area)
 
-            # [Fix Lỗi 3 & 5]: Dùng tỉ lệ ký tự so với TOÀN ẢNH
-            # thay vì con số cứng 250
+            # [Fix]: Chặn đứng các khối toàn chữ.
+            # Nếu mật độ text > 40%, HOẶC (mật độ > 25% và có trên 5% tổng ký tự)
             char_ratio = char_count / max(1, total_chars) if total_chars > 0 else 0
-            if text_density > self.TEXT_DENSITY_THRESHOLD and char_ratio > self.TEXT_CHAR_THRESHOLD_RATIO:
+            if text_density > 0.40 or (text_density > 0.25 and char_ratio > 0.05):
                 continue
 
             # --- Filter 3: Header/Footer (Dynamic) ---
@@ -431,6 +419,52 @@ class ChartRegionDetector:
             if not is_inside:
                 final.append(r)
         return final
+
+    # ====================================================================
+    # Gộp các hộp gần nhau (Merge Nearby)
+    # ====================================================================
+
+    def _merge_nearby_boxes(self, regions: list[ChartRegion], distance_thresh: float) -> list[ChartRegion]:
+        """Gộp các bounding box nếu khoảng cách giữa chúng nhỏ hơn distance_thresh."""
+        if not regions:
+            return []
+
+        def distance(b1, b2):
+            # Tính khoảng cách Manhattan hoặc Chebyshev giữa 2 box
+            dx = max(0, max(b1[0] - b2[2], b2[0] - b1[2]))
+            dy = max(0, max(b1[1] - b2[3], b2[1] - b1[3]))
+            return math.hypot(dx, dy)
+
+        merged = []
+        used = [False] * len(regions)
+        
+        for i, r1 in enumerate(regions):
+            if used[i]: continue
+            
+            x1, y1, x2, y2 = r1.bbox
+            score = r1.score
+            
+            # Khởi tạo một cụm
+            cluster_changed = True
+            while cluster_changed:
+                cluster_changed = False
+                for j, r2 in enumerate(regions):
+                    if i == j or used[j]: continue
+                    
+                    if distance((x1, y1, x2, y2), r2.bbox) < distance_thresh:
+                        # Gộp box
+                        x1 = min(x1, r2.bbox[0])
+                        y1 = min(y1, r2.bbox[1])
+                        x2 = max(x2, r2.bbox[2])
+                        y2 = max(y2, r2.bbox[3])
+                        score = max(score, r2.score)
+                        used[j] = True
+                        cluster_changed = True
+            
+            merged.append(ChartRegion(bbox=(x1, y1, x2, y2), score=score, detection_method="merged"))
+            used[i] = True
+            
+        return merged
 
     # ====================================================================
     # Crop & Save (giữ nguyên interface cũ)

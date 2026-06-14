@@ -58,6 +58,18 @@ Do đặc thù làm RAG tài chính, việc bắt đúng con số quan trọng h
     *   Được tính bằng công thức: `Content Score = 0.6 * Number_F1 + 0.4 * Label_Recall`
     *   Trọng số ưu tiên 60% cho độ chính xác của các con số.
 
+### C. Nhóm Trích xuất Cấu trúc (Form KIE & Table Cell F1)
+Để đánh giá chính xác các định dạng có cấu trúc phức tạp (Bảng và Biểu mẫu), script hỗ trợ:
+
+1.  **Form KIE F1 (Key Information Extraction F1):**
+    *   Đánh giá khả năng trích xuất các cặp `Key: Value`.
+    *   Thuật toán sẽ quét cả Bullet points (`- Key: Value`), Bold text (`**Key**: Value`), và các Bảng Markdown 2 cột (`| Key | Value |`). 
+    *   **Cập nhật quan trọng:** Đã khắc phục lỗi "Table Blindness" (không nhận diện được khi VLM tự cấu trúc Form thành bảng) và lỗi "Inline Hyphen" (bắt nhầm các từ có dấu gạch ngang như `COVID-19` thành Key).
+
+2.  **Table Cell F1:**
+    *   Đánh giá khả năng bảo toàn cấu trúc bảng.
+    *   Bóc tách từng ô (cell) trong bảng Markdown và dùng thuật toán Fuzzy Matching (ngưỡng 80%) để so khớp số lượng ô trích xuất đúng vị trí so với bản gốc.
+
 ## 3. Cách chạy Script
 
 Mở terminal trong môi trường ảo (venv) và chạy:

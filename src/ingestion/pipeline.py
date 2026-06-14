@@ -105,7 +105,7 @@ class IngestionPipeline:
             table_regions,
         )
 
-        # === Chart Isolation (Phase 6b) ===
+        # === Chart Isolation (Phase 6b) + Human-In-The-Loop ===
         chart_detector = ChartRegionDetector()
         chart_regions = chart_detector.detect(
             cleaned_img_path,
@@ -116,6 +116,64 @@ class IngestionPipeline:
         chart_assets = chart_detector.crop_and_save(
             cleaned_img_path, chart_regions, assets_dir, path.stem,
         )
+
+        # Human-in-the-loop (HITL) cho xử lý Biểu đồ
+        chart_mode = "crop_only"
+        if chart_regions:
+            print(f"\n" + "="*60)
+            print(f"🔥 [HITL] Đã phát hiện {len(chart_regions)} BIỂU ĐỒ trong ảnh {path.name}!")
+            print("Vui lòng chọn chế độ xử lý biểu đồ:")
+            print("  [1] Chỉ lưu ảnh biểu đồ (crop_only) - Mặc định")
+            print("  [2] Chỉ bóc tách SỐ LIỆU THÔ (data_only) - Bỏ ảnh")
+            print("  [3] Lấy CẢ ẢNH và SỐ LIỆU THÔ (crop_and_data)")
+            print("="*60)
+            
+            while True:
+                choice = input("Nhập lựa chọn (1/2/3) [Mặc định: 1]: ").strip()
+                if not choice or choice == "1":
+                    chart_mode = "crop_only"
+                    break
+                elif choice == "2":
+                    chart_mode = "data_only"
+                    break
+                elif choice == "3":
+                    chart_mode = "crop_and_data"
+                    break
+                else:
+                    print("Lựa chọn không hợp lệ, vui lòng nhập 1, 2, hoặc 3.")
+
+        if chart_mode in ("data_only", "crop_and_data") and chart_assets:
+            chart_prompt = (
+                "Đây là một hình ảnh biểu đồ. Nhiệm vụ duy nhất của bạn là trích xuất "
+                "chính xác các con số và nhãn trên biểu đồ này thành một Bảng Markdown (Markdown Table). "
+                "TUYỆT ĐỐI KHÔNG giải thích, KHÔNG tóm tắt, KHÔNG phân tích xu hướng. "
+                "Chỉ in ra bảng số liệu thô chứa các giá trị có trên biểu đồ."
+            )
+            vlm_processor = VLMOCRProcessor()
+            chart_data_md = ""
+            
+            for asset in chart_assets:
+                logger.info(f"[Chart] Đang bóc tách số liệu biểu đồ {asset['index']} (Mode: {chart_mode})...")
+                chart_data = vlm_processor.extract(
+                    asset["path"],
+                    system_prompt=chart_prompt,
+                    ocr_blocks=[],  # Không truyền OCR thô vì đã cắt vùng
+                    temperature=0.1,  # Low temp để lấy data tuyệt đối chính xác
+                )
+                
+                chart_section = f"\n\n### 📊 Biểu đồ {asset['index']}\n\n"
+                if chart_mode == "crop_and_data":
+                    filename = Path(asset['path']).name
+                    chart_section += f"![Biểu đồ {asset['index']}](assets/{filename})\n\n"
+                
+                chart_section += f"**Dữ liệu bóc tách:**\n\n{chart_data}\n\n"
+                chart_data_md += chart_section
+            
+            # Nối dữ liệu biểu đồ vào Markdown tổng
+            vlm_response += chart_data_md
+            
+            # Xóa assets để save_outputs không in lại ảnh biểu đồ ở cuối file Markdown
+            chart_assets = []
 
         # Tính năng 4: OpenCV-VLM Table Validator — validate cấu trúc bảng trước khi normalize
         vlm_response = self._validate_and_fallback_tables(vlm_response, reconstructed_tables)

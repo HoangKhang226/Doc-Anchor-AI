@@ -113,13 +113,12 @@ def extract_key_values(md_text: str) -> dict[str, str]:
     kv_pairs = {}
     
     # 1. Quét theo Regex cho các format có cấu trúc (Bullet, Bold)
-    pattern_structured = r'(?:\*\*([^*]+)\*\*\s*:\s*(.+))|(?:[-*]\s*([^:\n]+)\s*:\s*(.+))'
+    pattern_structured = r'(?:\*\*([^*:\n]+?)\*\*\s*:\s*([^**\n]*))|(?:\*\*([^*:\n]+?):\*\*\s*([^**\n]*))|(?:(?:^|\n)[ \t]*[-*][ \t]+([^:\n]+?)\s*:\s*([^\n]+))'
     for match in re.finditer(pattern_structured, md_text):
-        if match.group(1): # Pattern 1
-            key, val = match.group(1), match.group(2)
-        else: # Pattern 2
-            key, val = match.group(3), match.group(4)
-        kv_pairs[normalize_text(key)] = normalize_text(val)
+        groups = [g for g in match.groups() if g is not None]
+        if len(groups) >= 2:
+            key, val = groups[0], groups[1]
+            kv_pairs[normalize_text(key)] = normalize_text(val)
         
     # 2. Xử lý các dòng phẳng (Flat Text), dải chấm, hoặc ô trong Table
     # Thay thế | và dải dấu chấm thành khoảng trắng lớn
@@ -143,6 +142,28 @@ def extract_key_values(md_text: str) -> dict[str, str]:
             if key and len(key.split()) < 15 and key not in kv_pairs:
                 kv_pairs[key] = val
                 
+    # 3. Hỗ trợ bóc tách từ Markdown Table (VLM thường xuyên trả về dạng Bảng 2 cột cho Form)
+    lines = md_text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if '|' in line and not re.match(r'^[\s\-\|]+$', line):
+            raw_cells = line.split('|')
+            if len(raw_cells) > 2:
+                row_cells = [c.strip() for c in raw_cells]
+                if line.startswith('|') and not row_cells[0]:
+                    row_cells.pop(0)
+                if line.endswith('|') and row_cells and not row_cells[-1]:
+                    row_cells.pop(-1)
+                
+                # Nếu dòng bảng có đúng 2 cột, đây khả năng cao là Key-Value (vd: | Họ Tên | Nguyễn Văn A |)
+                if len(row_cells) == 2:
+                    key = normalize_text(row_cells[0]).replace(':', '').strip()
+                    val = normalize_text(row_cells[1])
+                    if key and len(key.split()) < 15 and key not in kv_pairs:
+                        # Bỏ qua các dòng tiêu đề bảng phổ biến
+                        if key.lower() not in ["key", "value", "chỉ tiêu", "nội dung", "thông tin", "thuộc tính", "giá trị"]:
+                            kv_pairs[key] = val
+                            
     return kv_pairs
 
 def eval_form_logic(gt: str, pred: str) -> dict:

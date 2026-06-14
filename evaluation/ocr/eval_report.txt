@@ -1,0 +1,104 @@
+================================================================================
+📊 BÁO CÁO BENCHMARK THEO LOẠI TÀI LIỆU (CATEGORIZED)
+================================================================================
+
+📁 Nhóm: FORMS (20 file)
+   -> CER: 0.042 | WER: 0.069 | Sim: 97.69% | Form KIE F1: 79.94%
+
+📁 Nhóm: MIXED_LAYOUTS (20 file)
+   -> CER: 0.158 | WER: 0.255 | Sim: 89.98% | TokenSim: 89.86%
+
+📁 Nhóm: PURE_TEXT (20 file)
+   -> CER: 0.016 | WER: 0.037 | Sim: 98.96% | TokenSim: 98.36%
+
+📁 Nhóm: TABLES (16 file)
+   -> CER: 0.087 | WER: 0.227 | Sim: 94.62% | Table Cell F1: 0.00%
+
+================================================================================
+🔥 TỔNG KẾT TOÀN HỆ THỐNG (OVERALL)
+================================================================================
+Tổng số file đã hoàn thành : 76
+CER trung bình toàn tập    : 0.075
+WER trung bình toàn tập    : 0.143
+Sim trung bình (normalized): 95.35%
+TokenSim trung bình        : 93.97%
+
+================================================================================
+BÁO CÁO ĐÁNH GIÁ CHI TIẾT TỪNG ẢNH
+================================================================================
+[forms/forms_01.jpg] | CER: 0.083 | WER: 0.094 | Sim: 95.81% | TokenSim: 99.34%
+[forms/forms_02.jpg] | CER: 0.084 | WER: 0.097 | Sim: 95.37% | TokenSim: 95.03%
+[forms/forms_03.jpg] | CER: 0.075 | WER: 0.171 | Sim: 95.93% | TokenSim: 97.14%
+[forms/forms_04.jpg] | CER: 0.078 | WER: 0.085 | Sim: 95.90% | TokenSim: 95.55%
+[forms/forms_05.jpg] | CER: 0.062 | WER: 0.102 | Sim: 96.44% | TokenSim: 96.24%
+[forms/forms_06.jpg] | CER: 0.030 | WER: 0.079 | Sim: 97.89% | TokenSim: 95.19%
+[forms/forms_07.png] | CER: 0.003 | WER: 0.006 | Sim: 99.84% | TokenSim: 99.57%
+[forms/forms_08.jpg] | CER: 0.029 | WER: 0.032 | Sim: 98.53% | TokenSim: 98.72%
+[forms/forms_09.jpg] | CER: 0.082 | WER: 0.105 | Sim: 95.37% | TokenSim: 94.44%
+[forms/forms_10.webp] | CER: 0.001 | WER: 0.006 | Sim: 99.86% | TokenSim: 99.86%
+[forms/forms_11.png] | CER: 0.019 | WER: 0.027 | Sim: 98.89% | TokenSim: 98.89%
+[forms/forms_12.png] | CER: 0.013 | WER: 0.020 | Sim: 99.29% | TokenSim: 99.62%
+[forms/forms_13.webp] | CER: 0.004 | WER: 0.012 | Sim: 99.71% | TokenSim: 99.71%
+[forms/forms_14.jpg] | CER: 0.058 | WER: 0.096 | Sim: 96.72% | TokenSim: 96.38%
+[forms/forms_15.jpg] | CER: 0.036 | WER: 0.055 | Sim: 98.13% | TokenSim: 97.85%
+[forms/forms_16.jpg] | CER: 0.067 | WER: 0.101 | Sim: 96.50% | TokenSim: 95.58%
+[forms/forms_17.jpg] | CER: 0.071 | WER: 0.198 | Sim: 95.90% | TokenSim: 94.18%
+[forms/forms_18.jpg] | CER: 0.019 | WER: 0.031 | Sim: 98.86% | TokenSim: 98.31%
+[forms/forms_19.jpg] | CER: 0.009 | WER: 0.031 | Sim: 99.30% | TokenSim: 99.12%
+[forms/forms_20.jpg] | CER: 0.010 | WER: 0.036 | Sim: 99.50% | TokenSim: 99.50%
+[mixed_layouts/mixed_layouts_01.webp] | CER: 0.070 | WER: 0.270 | Sim: 95.60% | TokenSim: 88.20%
+[mixed_layouts/mixed_layouts_02.jpg] | CER: 0.061 | WER: 0.104 | Sim: 96.49% | TokenSim: 94.49%
+[mixed_layouts/mixed_layouts_03.png] | CER: 0.091 | WER: 0.112 | Sim: 95.20% | TokenSim: 94.95%
+[mixed_layouts/mixed_layouts_04.jpeg] | CER: 0.063 | WER: 0.193 | Sim: 96.06% | TokenSim: 90.07%
+[mixed_layouts/mixed_layouts_05.png] | CER: 0.224 | WER: 0.339 | Sim: 84.38% | TokenSim: 79.36%
+[mixed_layouts/mixed_layouts_06.png] | CER: 0.160 | WER: 0.275 | Sim: 88.22% | TokenSim: 83.66%
+[mixed_layouts/mixed_layouts_07.png] | CER: 0.154 | WER: 0.238 | Sim: 89.60% | TokenSim: 88.34%
+[mixed_layouts/mixed_layouts_08.png] | CER: 0.084 | WER: 0.118 | Sim: 94.95% | TokenSim: 93.88%
+[mixed_layouts/mixed_layouts_09.jpg] | CER: 0.268 | WER: 0.405 | Sim: 84.04% | TokenSim: 85.08%
+[mixed_layouts/mixed_layouts_10.png] | CER: 0.302 | WER: 0.391 | Sim: 80.94% | TokenSim: 87.66%
+[mixed_layouts/mixed_layouts_11.webp] | CER: 0.068 | WER: 0.066 | Sim: 96.63% | TokenSim: 98.69%
+[mixed_layouts/mixed_layouts_12.png] | CER: 0.033 | WER: 0.039 | Sim: 98.27% | TokenSim: 98.02%
+[mixed_layouts/mixed_layouts_13.jpg] | CER: 0.033 | WER: 0.157 | Sim: 98.31% | TokenSim: 96.22%
+[mixed_layouts/mixed_layouts_14.png] | CER: 0.111 | WER: 0.169 | Sim: 94.00% | TokenSim: 89.67%
+[mixed_layouts/mixed_layouts_15.webp] | CER: 0.238 | WER: 0.635 | Sim: 81.23% | TokenSim: 75.09%
+[mixed_layouts/mixed_layouts_16.jpg] | CER: 0.291 | WER: 0.331 | Sim: 83.51% | TokenSim: 96.38%
+[mixed_layouts/mixed_layouts_17.webp] | CER: 0.319 | WER: 0.474 | Sim: 77.92% | TokenSim: 78.43%
+[mixed_layouts/mixed_layouts_18.jpg] | CER: 0.222 | WER: 0.323 | Sim: 86.55% | TokenSim: 96.60%
+[mixed_layouts/mixed_layouts_19.jpg] | CER: 0.087 | WER: 0.144 | Sim: 94.44% | TokenSim: 96.67%
+[mixed_layouts/mixed_layouts_20.jpg] | CER: 0.290 | WER: 0.312 | Sim: 83.28% | TokenSim: 85.68%
+[pure_text/pure_text_01.jpg] | CER: 0.003 | WER: 0.013 | Sim: 99.86% | TokenSim: 99.77%
+[pure_text/pure_text_02.webp] | CER: 0.000 | WER: 0.000 | Sim: 100.00% | TokenSim: 100.00%
+[pure_text/pure_text_03.jpg] | CER: 0.040 | WER: 0.058 | Sim: 97.63% | TokenSim: 97.50%
+[pure_text/pure_text_04.jpg] | CER: 0.004 | WER: 0.020 | Sim: 99.57% | TokenSim: 98.41%
+[pure_text/pure_text_05.webp] | CER: 0.031 | WER: 0.045 | Sim: 98.31% | TokenSim: 97.73%
+[pure_text/pure_text_06.jpeg] | CER: 0.002 | WER: 0.008 | Sim: 99.82% | TokenSim: 99.58%
+[pure_text/pure_text_07.png] | CER: 0.002 | WER: 0.016 | Sim: 99.78% | TokenSim: 99.44%
+[pure_text/pure_text_08.webp] | CER: 0.005 | WER: 0.024 | Sim: 99.48% | TokenSim: 99.48%
+[pure_text/pure_text_09.png] | CER: 0.011 | WER: 0.024 | Sim: 99.25% | TokenSim: 98.89%
+[pure_text/pure_text_10.webp] | CER: 0.026 | WER: 0.127 | Sim: 97.96% | TokenSim: 93.39%
+[pure_text/pure_text_11.jpg] | CER: 0.033 | WER: 0.081 | Sim: 97.46% | TokenSim: 95.26%
+[pure_text/pure_text_12.png] | CER: 0.033 | WER: 0.066 | Sim: 98.17% | TokenSim: 96.94%
+[pure_text/pure_text_13.webp] | CER: 0.040 | WER: 0.058 | Sim: 97.89% | TokenSim: 97.46%
+[pure_text/pure_text_14.png] | CER: 0.003 | WER: 0.007 | Sim: 99.80% | TokenSim: 99.80%
+[pure_text/pure_text_15.png] | CER: 0.010 | WER: 0.036 | Sim: 99.51% | TokenSim: 99.02%
+[pure_text/pure_text_16.png] | CER: 0.004 | WER: 0.011 | Sim: 99.74% | TokenSim: 99.39%
+[pure_text/pure_text_17.webp] | CER: 0.006 | WER: 0.014 | Sim: 99.69% | TokenSim: 99.69%
+[pure_text/pure_text_18.png] | CER: 0.003 | WER: 0.009 | Sim: 99.74% | TokenSim: 99.48%
+[pure_text/pure_text_19.jpg] | CER: 0.046 | WER: 0.085 | Sim: 96.67% | TokenSim: 96.71%
+[pure_text/pure_text_20.jpg] | CER: 0.023 | WER: 0.028 | Sim: 98.81% | TokenSim: 99.16%
+[tables/tables_01.jpg] | CER: 0.048 | WER: 0.061 | Sim: 97.58% | TokenSim: 97.30%
+[tables/tables_02.jpg] | CER: 0.049 | WER: 0.136 | Sim: 97.22% | TokenSim: 94.52%
+[tables/tables_03.png] | CER: 0.299 | WER: 0.502 | Sim: 83.76% | TokenSim: 78.36%
+[tables/tables_04.jpg] | CER: 0.074 | WER: 0.421 | Sim: 93.33% | TokenSim: 51.85%
+[tables/tables_05.png] | CER: 0.056 | WER: 0.142 | Sim: 97.16% | TokenSim: 98.50%
+[tables/tables_06.png] | CER: 0.061 | WER: 0.107 | Sim: 96.59% | TokenSim: 92.72%
+[tables/tables_07.jpg] | CER: 0.117 | WER: 0.381 | Sim: 92.25% | TokenSim: 89.92%
+[tables/tables_08.png] | CER: 0.198 | WER: 0.590 | Sim: 87.79% | TokenSim: 76.28%
+[tables/tables_09.png] | CER: 0.142 | WER: 0.745 | Sim: 91.97% | TokenSim: 73.70%
+[tables/tables_10.jpg] | CER: 0.035 | WER: 0.074 | Sim: 97.74% | TokenSim: 96.44%
+[tables/tables_11.jpg] | CER: 0.215 | WER: 0.288 | Sim: 85.47% | TokenSim: 84.65%
+[tables/tables_12.jpg] | CER: 0.003 | WER: 0.016 | Sim: 99.67% | TokenSim: 99.56%
+[tables/tables_13.png] | CER: 0.000 | WER: 0.000 | Sim: 100.00% | TokenSim: 100.00%
+[tables/tables_14.png] | CER: 0.004 | WER: 0.020 | Sim: 99.65% | TokenSim: 99.65%
+[tables/tables_15.webp] | CER: 0.065 | WER: 0.120 | Sim: 95.42% | TokenSim: 95.62%
+[tables/tables_16.webp] | CER: 0.031 | WER: 0.035 | Sim: 98.42% | TokenSim: 98.56%

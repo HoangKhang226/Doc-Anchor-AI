@@ -1,45 +1,27 @@
-**BIỂU THUẾ TIÊU THỤ ĐẶC BIỆT**
-*(Theo Điều 7 Luật số 27/2008/QH12 & Luật 106/2016/QH13)*
+**LƯU CHUYỂN TIỀN TỆ (THEO PHƯƠNG PHÁP TRỰC TIẾP)**
+*(Ban hành theo QĐ số 15/2006/QĐ-BTC Ngày 20/03/2006 của Bộ trưởng BTC)*
+Niên độ tài chính năm 2014
 
-| STT | Hàng hoá, dịch vụ | Thuế suất (%) |
-|---|---|---|
-| **I** | **Hàng hoá** | |
-| I | Hàng hóa | |
-| 1 | Thuốc lá điếu, xì gà và các chế phẩm khác từ cây thuốc lá | |
-| | Từ ngày 01 tháng 01 năm 2016 đến hết ngày 31 tháng 12 năm 2018 | 70 |
-| | Từ ngày 01 tháng 01 năm 2019 | 75 |
-| 2 | Rượu | |
-| | a) Rượu từ 20 độ trở lên | |
-| | Từ ngày 01 tháng 01 năm 2016 đến hết ngày 31 tháng 12 năm 2016 | 55 |
-| | Từ ngày 01 tháng 01 năm 2017 đến hết ngày 31 tháng 12 năm 2017 | 60 |
-| | Từ ngày 01 tháng 01 năm 2018 | 65 |
-| | b) Rượu dưới 20 độ | |
-| | Từ ngày 01 tháng 01 năm 2016 đến hết ngày 31 tháng 12 năm 2017 | 30 |
-| | Từ ngày 01 tháng 01 năm 2018 | 35 |
-| 3 | Bia | |
-| | Từ ngày 01 tháng 01 năm 2016 đến hết ngày 31 tháng 12 năm 2016 | 55 |
-| | Từ ngày 01 tháng 01 năm 2017 đến hết ngày 31 tháng 12 năm 2017 | 60 |
-| | Từ ngày 01 tháng 01 năm 2018 | 65 |
-| 4 | Xe ô tô dưới 24 chỗ | |
-| | a) Xe ô tô chở người từ 9 chỗ trở xuống, trừ loại quy định tại các Điểm 4d, 4e và 4g của Biểu thuế quy định tại bảng này | |
-| | - Loại có dung tích xi lanh từ 1.500 cm3 trở xuống | |
-| | + Từ ngày 01 tháng 7 năm 2016 đến hết ngày 31 tháng 12 năm 2017 | 40 |
-| | + Từ ngày 01 tháng 01 năm 2018 | 35 |
-| | - Loại có dung tích xi lanh trên 1.500 cm3 đến 2.000 cm3 | |
-| | + Từ ngày 01 tháng 7 năm 2016 đến hết ngày 31 tháng 12 năm 2017 | 45 |
-| | + Từ ngày 01 tháng 01 năm 2018 | 40 |
-| | - Loại có dung tích xi lanh trên 2.000 cm3 đến 2.500 cm3 | 50 |
-| | - Loại có dung tích xi lanh trên 2.500 cm3 đến 3.000 cm3 | |
-| | + Từ ngày 01 tháng 07 năm 2016 đến hết ngày 31 tháng 12 năm 2017 | 55 |
-| | + Từ ngày 01 tháng 01 năm 2018 | 60 |
-| | - Loại có dung tích xi lanh trên 3.000 cm3 đến 4.000 cm3 | 90 |
-| | - Loại có dung tích xi lanh trên 4.000 cm3 đến 5.000 cm3 | 110 |
-| | - Loại có dung tích xi lanh trên 5.000 cm3 đến 6.000 cm3 | 130 |
-| | - Loại có dung tích xi lanh trên 6.000 cm3 | 150 |
-| | b) Xe ô tô chở người từ 10 đến dưới 16 chỗ, trừ loại quy định tại các Điểm 4d, 4e và 4g của Biểu thuế quy định tại bảng này | 15 |
-| | c) Xe ô tô chở người từ 16 đến dưới 24 chỗ, trừ loại quy định tại các Điểm 4d, 4e và 4g của Biểu thuế quy định tại bảng này | 10 |
-| | d) Xe ô tô vừa chở người, vừa chở hàng, trừ loại quy định tại các Điểm 4d, 4e và 4g của Biểu thuế quy định tại bảng này | |
-| | - Loại có dung tích xi lanh từ 2.500 cm3 trở xuống | 15 |
-| | - Loại có dung tích xi lanh trên 2.500 cm3 đến 3.000 cm3 | 20 |
-| | - Loại có dung tích xi lanh trên 3.000 cm3 | 25 |
-| | đ) Xe ô tô chạy bằng xăng kết hợp năng lượng điện, năng lượng sinh học, trong đó tỷ trọng xăng sử dụng không quá 70% số năng lượng sử dụng | Bằng 70% mức thuế suất áp dụng cho xe cùng loại quy định tại các Điểm 4a, 4b, 4c và 4d của Biểu thuế quy định tại bảng này |
+Mã số thuế: **0105458799**
+Người nộp thuế: **Công ty TNHH dịch vụ Tư vấn và Đại lý thuế**
+Đơn vị tiền: Đồng việt nam
+
+| STT | CHỈ TIÊU | Mã | Thuyết minh | Số năm nay | Số năm trước |
+|---|---|---|---|---|---|
+| **(1)** | **(2)** | **(3)** | **(4)** | **(5)** | **(6)** |
+| **I** | **I. Lưu chuyển tiền từ hoạt động kinh doanh** | | | | |
+| 1 | 1. Tiền thu từ bán hàng, cung cấp dịch vụ và doanh thu khác | 01 | | 0 | 0 |
+| 2 | 2. Tiền chi trả cho người cung cấp hàng hóa và dịch vụ | 02 | | 0 | 0 |
+| 3 | 3. Tiền chi trả cho người lao động | 03 | | 0 | 0 |
+| 4 | 4. Tiền chi trả lãi vay | 04 | | 0 | 0 |
+| 5 | 5. Tiền chi nộp thuế thu nhập doanh nghiệp | 05 | | 0 | 0 |
+| 6 | 6. Tiền thu khác từ hoạt động kinh doanh | 06 | | 0 | 0 |
+| 7 | 7. Tiền chi khác cho hoạt động kinh doanh | 07 | | 0 | 0 |
+| | **Lưu chuyển tiền thuần từ hoạt động kinh doanh** | **20** | | **0** | **0** |
+| **II** | **II. Lưu chuyển tiền từ hoạt động đầu tư** | | | | |
+| 1 | 1.Tiền chi để mua sắm, xây dựng TSCĐ và các tài sản dài hạn khác | 21 | | 0 | 0 |
+| 2 | 2.Tiền thu từ thanh lý, nhượng bán TSCĐ và các tài sản dài hạn khác | 22 | | 0 | 0 |
+| 3 | 3.Tiền chi cho vay, mua các công cụ nợ của đơn vị khác | 23 | | 0 | 0 |
+| 4 | 4.Tiền thu hồi cho vay, bán lại các công cụ nợ của đơn vị khác | 24 | | 0 | 0 |
+| 5 | 5.Tiền chi đầu tư góp vốn vào đơn vị khác | 25 | | 0 | 0 |
+| 6 | 6.Tiền thu hồi đầu tư góp vốn vào đơn vị khác | 26 | | 0 | 0 |
