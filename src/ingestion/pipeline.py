@@ -17,7 +17,7 @@ from src.ingestion.core.image_preprocessor import ImagePreprocessor
 from src.ingestion.extractors.vlm_ocr_extractor import VLMOCRProcessor
 from src.ingestion.extractors import PaddleOCRExtractor
 from src.ingestion.prompts import build_financial_extraction_prompt
-from src.ingestion.routing import LayoutRoute, LayoutRouter
+from src.ingestion.routing import LayoutRouter
 from src.ingestion.schemas import ConfidenceReport, ExtractedTable, ExtractionResult, OCRBlock
 from src.ingestion.tables.table_reconstruction import reconstruct_tables_from_ocr
 from src.ingestion.tables.table_region_detection import TableRegionDetector, crop_ocr_blocks_to_region
@@ -425,13 +425,6 @@ class IngestionPipeline:
                 
             lines.append(line)
         
-        # Không tính các dòng rỗng, dòng bảng, hoặc dòng tiêu đề vào short_like để tránh nhận diện sai tài liệu ngắn
-        struct_lines = [l for l in lines if l.strip() and not l.startswith("|") and not l.startswith("#")]
-        bullet_like = sum(1 for line in struct_lines if line.startswith("-") or line.startswith("*") or line.startswith("•"))
-        
-        # Chỉ tính dòng ngắn thực sự không có cấu trúc
-        short_like = sum(1 for line in struct_lines if len(line.strip()) <= 15)
-        struct_line_count = len(struct_lines) or 1
 
         cleaned_lines: list[str] = []
         prev_line = ""
@@ -452,8 +445,6 @@ class IngestionPipeline:
             warnings.append(f"VLM repetition loop: đã xóa {dedup_count} khối nội dung bị lặp.")
             cleaned_text = deduped_text
 
-        # Kiểm tra xem có bảng markdown hợp lệ không
-        has_table = "|" in cleaned_text and "---" in cleaned_text
 
         return cleaned_text, warnings
 
