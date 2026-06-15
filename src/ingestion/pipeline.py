@@ -13,15 +13,14 @@ from typing import Any
 
 from src.config import settings, get_logger
 
-from src.ingestion.image_preprocessor import ImagePreprocessor
-from src.ingestion.vlm_ocr import VLMOCRProcessor
+from src.ingestion.core.image_preprocessor import ImagePreprocessor
+from src.ingestion.extractors.vlm_ocr_extractor import VLMOCRProcessor
 from src.ingestion.extractors import PaddleOCRExtractor
 from src.ingestion.prompts import build_financial_extraction_prompt
 from src.ingestion.routing import LayoutRoute, LayoutRouter
 from src.ingestion.schemas import ConfidenceReport, ExtractedTable, ExtractionResult, OCRBlock
-from src.ingestion.table_reconstruction import reconstruct_tables_from_ocr
-from src.ingestion.table_region_detection import TableRegionDetector, crop_ocr_blocks_to_region
-from src.ingestion.chart_region_detector import ChartRegionDetector
+from src.ingestion.tables.table_reconstruction import reconstruct_tables_from_ocr
+from src.ingestion.tables.table_region_detection import TableRegionDetector, crop_ocr_blocks_to_region
 
 logger = get_logger(__name__)
 
@@ -55,17 +54,8 @@ class IngestionPipeline:
         md_path = self.processed_dir / f"{stem}.md"
         json_path = self.processed_dir / f"{stem}.json"
 
-        md_content = result.markdown
-        
-        # === Chart Isolation (Phase 6b) ===
-        if result.chart_assets:
-            md_content += "\n\n## 📊 Biểu đồ trong tài liệu\n\n"
-            for asset in result.chart_assets:
-                filename = Path(asset['path']).name
-                md_content += f"![Biểu đồ {asset['index']}](assets/{filename})\n\n"
-
         with open(md_path, "w", encoding="utf-8") as f:
-            f.write(md_content)
+            f.write(result.markdown)
 
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(result.to_dict(), f, ensure_ascii=False, indent=2)
@@ -105,76 +95,6 @@ class IngestionPipeline:
             table_regions,
         )
 
-        # === Chart Isolation (Phase 6b) + Human-In-The-Loop ===
-        chart_detector = ChartRegionDetector()
-        chart_regions = chart_detector.detect(
-            cleaned_img_path,
-            ocr_blocks,
-            table_bboxes=[r.bbox for r in table_regions],
-        )
-        assets_dir = self.processed_dir / "assets"
-        chart_assets = chart_detector.crop_and_save(
-            cleaned_img_path, chart_regions, assets_dir, path.stem,
-        )
-
-        # Human-in-the-loop (HITL) cho xử lý Biểu đồ
-        chart_mode = "crop_only"
-        if chart_regions:
-            print(f"\n" + "="*60)
-            print(f" [HITL] Đã phát hiện {len(chart_regions)} BIỂU ĐỒ trong ảnh {path.name}!")
-            print("Vui lòng chọn chế độ xử lý biểu đồ:")
-            print("  [1] Chỉ lưu ảnh biểu đồ (crop_only) - Mặc định")
-            print("  [2] Chỉ bóc tách SỐ LIỆU THÔ (data_only) - Bỏ ảnh")
-            print("  [3] Lấy CẢ ẢNH và SỐ LIỆU THÔ (crop_and_data)")
-            print("="*60)
-            
-            while True:
-                choice = input("Nhập lựa chọn (1/2/3) [Mặc định: 1]: ").strip()
-                if not choice or choice == "1":
-                    chart_mode = "crop_only"
-                    break
-                elif choice == "2":
-                    chart_mode = "data_only"
-                    break
-                elif choice == "3":
-                    chart_mode = "crop_and_data"
-                    break
-                else:
-                    print("Lựa chọn không hợp lệ, vui lòng nhập 1, 2, hoặc 3.")
-
-        if chart_mode in ("data_only", "crop_and_data") and chart_assets:
-            chart_prompt = (
-                "Đây là một hình ảnh biểu đồ. Nhiệm vụ duy nhất của bạn là trích xuất "
-                "chính xác các con số và nhãn trên biểu đồ này thành một Bảng Markdown (Markdown Table). "
-                "TUYỆT ĐỐI KHÔNG giải thích, KHÔNG tóm tắt, KHÔNG phân tích xu hướng. "
-                "Chỉ in ra bảng số liệu thô chứa các giá trị có trên biểu đồ."
-            )
-            vlm_processor = VLMOCRProcessor()
-            chart_data_md = ""
-            
-            for asset in chart_assets:
-                logger.info(f"[Chart] Đang bóc tách số liệu biểu đồ {asset['index']} (Mode: {chart_mode})...")
-                chart_data = vlm_processor.extract(
-                    asset["path"],
-                    system_prompt=chart_prompt,
-                    ocr_blocks=[],  # Không truyền OCR thô vì đã cắt vùng
-                    temperature=0.1,  # Low temp để lấy data tuyệt đối chính xác
-                )
-                
-                chart_section = f"\n\n### 📊 Biểu đồ {asset['index']}\n\n"
-                if chart_mode == "crop_and_data":
-                    filename = Path(asset['path']).name
-                    chart_section += f"![Biểu đồ {asset['index']}](assets/{filename})\n\n"
-                
-                chart_section += f"**Dữ liệu bóc tách:**\n\n{chart_data}\n\n"
-                chart_data_md += chart_section
-            
-            # Nối dữ liệu biểu đồ vào Markdown tổng
-            vlm_response += chart_data_md
-            
-            # Xóa assets để save_outputs không in lại ảnh biểu đồ ở cuối file Markdown
-            chart_assets = []
-
         # Tính năng 4: OpenCV-VLM Table Validator — validate cấu trúc bảng trước khi normalize
         vlm_response = self._validate_and_fallback_tables(vlm_response, reconstructed_tables)
 
@@ -203,7 +123,6 @@ class IngestionPipeline:
             markdown=markdown,
             fields={},
             tables=reconstructed_tables,
-            chart_assets=chart_assets,
             raw_ocr=ocr_blocks,
             uncertain_tokens=self._extract_uncertain_tokens(markdown),
             quality_class=route.quality_class,
@@ -228,10 +147,6 @@ class IngestionPipeline:
                     {"bbox": region.bbox, "score": region.score, "source": region.source}
                     for region in table_regions
                 ],
-                "chart_regions": [
-                    {"bbox": r.bbox, "score": r.score} for r in chart_regions
-                ],
-                "chart_assets": chart_assets,
             },
         )
         return result
@@ -396,7 +311,7 @@ class IngestionPipeline:
         reconstructed_tables: list[ExtractedTable],
     ) -> str:
         """
-        Chốt chặn Validate: Nếu VLM sinh bảng lỗi hoặc lệch cấu trúc cột so với OpenCV,
+        Chốt chặn Validate: VLM sinh bảng lỗi hoặc lệch cấu trúc cột so với OpenCV
         hệ thống sẽ vứt bảng VLM và swap bằng Reconstructed Table từ OCR Blocks.
         """
         if not reconstructed_tables:
@@ -407,7 +322,7 @@ class IngestionPipeline:
 
         # Nếu OpenCV tìm thấy bảng nhưng VLM hoàn toàn không dựng bảng (rã thành text)
         if not vlm_tables and reconstructed_tables:
-            # P0 Fix: Kiểm tra xem VLM đã rã bảng thành bullet list có data chưa.
+            # Kiểm tra xem VLM đã rã bảng thành bullet list có data chưa.
             # Nếu VLM đã trả bullet list có chứa số liệu → tin tưởng VLM, KHÔNG đắp thêm bảng rác.
             vlm_has_structured_data = self._vlm_has_bullet_data(vlm_markdown)
             if vlm_has_structured_data:
@@ -470,7 +385,7 @@ class IngestionPipeline:
         """Làm sạch markdown đầu ra để giảm bullet spam và noise OCR."""
         warnings: list[str] = []
         
-        # P1 Fix: Strip Model Artifacts — quét và triệt tiêu toàn bộ meta-tag tự sinh của VLM
+        # Strip Model Artifacts — quét và triệt tiêu toàn bộ meta-tag tự sinh của VLM
         # Bao phủ nhiều model: Qwen ([uncertain:]), InternVL (<box>), Gemma ([unrecognized]), v.v.
         text = re.sub(r'\[uncertain:[^\]]*\]', '', markdown)
         text = re.sub(r'\[unrecognized[^\]]*\]', '', text)
@@ -530,7 +445,7 @@ class IngestionPipeline:
 
         cleaned_text = "\n".join(cleaned_lines).strip()
 
-        # P0 Fix: Dedup Repetition — VLM đôi khi lặp toàn bộ nội dung nhiều lần
+        # Dedup Repetition — VLM đôi khi lặp toàn bộ nội dung nhiều lần
         # (ví dụ: sao kê ngân hàng 8 cột → lặp 5 lần, từ 2.4KB → 12KB)
         deduped_text, dedup_count = self._dedup_repeated_blocks(cleaned_text)
         if dedup_count > 0:
@@ -587,7 +502,7 @@ class IngestionPipeline:
                 )
                 continue
 
-            # P0 Fix: Kiểm tra lặp bị cắt đứt (cutoff) do EOF
+            # Kiểm tra lặp bị cắt đứt (cutoff) do EOF
             # Cửa sổ trượt: so sánh khối hiện tại với phần đầu của các khối đã thấy
             is_cutoff_duplicate = False
             for seen_fp, sec_idx in seen_fingerprints.items():

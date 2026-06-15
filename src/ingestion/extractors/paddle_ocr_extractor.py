@@ -12,7 +12,7 @@ import os
 from src.config import settings, get_logger
 from src.ingestion.schemas import OCRBlock
 
-# PaddleOCR 3.x + paddlepaddle 3.x trên Windows CPU có thể lỗi oneDNN/PIR:
+# Xử lý vấn đề tương thích giữa PaddleOCR và Windows CPU:
 # "ConvertPirAttribute2RuntimeAttribute not support ...".
 # Tắt các optimization này trước khi import/khởi tạo PaddleOCR để ưu tiên đường chạy ổn định.
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
@@ -124,7 +124,7 @@ class PaddleOCRExtractor:
         else:
             blocks = self._parse_legacy_ocr_result(raw_result)
             
-        # --- FIX FORMS KIE: GỘP CÁC KHỐI CHỮ NẰM NGANG CÙNG DÒNG ---
+        # GỘP CÁC KHỐI CHỮ NẰM NGANG CÙNG DÒNG
         # Ngăn chặn việc Key và Value bị đứt gãy do khoảng trắng dài hoặc dấu chấm `......`
         blocks = self._merge_horizontal_blocks(blocks)
 

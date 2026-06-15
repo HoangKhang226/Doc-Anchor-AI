@@ -1,6 +1,6 @@
 """
 Doc Anchor AI — Fallback Path (Image Preprocessing)
-Tiền xử lý ảnh lỗi bằng OpenCV trước khi ném vào VLM.
+Tiền xử lý ảnh bằng OpenCV trước khi đưa vào VLM.
 Tăng cường: Khử bóng, Xoay thẳng (Deskew), Cân bằng sáng.
 """
 
@@ -70,7 +70,7 @@ class ImagePreprocessor:
 
     def process(self, input_path: str | Path, output_path: str | Path) -> str:
         """
-        Hàm tổng hợp tiền xử lý. Nhận đường dẫn ảnh lỗi, xuất ra ảnh sạch.
+        Hàm tổng hợp tiền xử lý. Nhận đường dẫn ảnh đầu vào, xuất ra ảnh sạch.
         """
         in_path = str(input_path)
         out_path = str(output_path)

@@ -2,6 +2,10 @@ import sys
 import time
 import json
 from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
 
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
@@ -29,25 +33,25 @@ def main():
         try:
             with open(report_file, "r", encoding="utf-8") as f:
                 results = json.load(f)
-            print(f"🔄 Auto-Resume: Tìm thấy {len(results)} kết quả cũ. Sẽ BỎ QUA các file này.")
+            print(f"Auto-Resume: Tìm thấy {len(results)} kết quả cũ. Sẽ BỎ QUA các file này.")
         except json.JSONDecodeError:
-            print("⚠️ File eval_report.json bị lỗi, sẽ ghi đè từ đầu.")
+            print("File eval_report.json bị lỗi, sẽ ghi đè từ đầu.")
             
     pipeline = IngestionPipeline()
     
-    print("="*80)
-    print("🚀 DOC ANCHOR AI: COLAB OCR EVALUATION SUITE")
-    print("="*80)
+    logger.info("="*80)
+    logger.info("DOC ANCHOR AI: COLAB OCR EVALUATION SUITE")
+    logger.info("="*80)
     
-    print("🔥 Đang khởi tạo (Warm-up) PaddleOCR để tải model (chống lỗi Multi-thread)...")
+    logger.info("Đang khởi tạo (Warm-up) PaddleOCR để tải model (chống lỗi Multi-thread)...")
     try:
         from src.ingestion.extractors.paddle_ocr_extractor import PaddleOCRExtractor
-        from src.ingestion.table_region_detection import TableRegionDetector
+        from src.ingestion.tables.table_region_detection import TableRegionDetector
         PaddleOCRExtractor()._load_engine()
         TableRegionDetector()._get_engine()
-        print("✅ Khởi tạo PaddleOCR thành công.")
+        print("Khởi tạo PaddleOCR thành công.")
     except Exception as e:
-        print(f"⚠️ Cảnh báo khởi tạo PaddleOCR: {e}")
+        print(f"Cảnh báo khởi tạo PaddleOCR: {e}")
         
     # Tìm tất cả ảnh trong các thư mục con (cord_v2, sroie, custom_finsight)
     all_images = []
@@ -57,7 +61,7 @@ def main():
     all_images = sorted(all_images)
     
     if not all_images:
-        print("❌ Không tìm thấy ảnh nào trong evaluation/ocr/data/")
+        logger.info("Không tìm thấy ảnh nào trong evaluation/ocr/data/")
         return
         
     print(f"Tổng số ảnh trong thư mục: {len(all_images)}")
@@ -80,7 +84,7 @@ def main():
         
         gt_path = gt_path_exact if gt_path_exact.exists() else gt_path_stem
         if not gt_path.exists():
-            return f"⚠️  Bỏ qua {img_id} (Không có Ground Truth .gt.txt)"
+            return f" Bỏ qua {img_id} (Không có Ground Truth .gt.txt)"
             
         with open(gt_path, 'r', encoding='utf-8') as f:
             ground_truth = f.read().strip()
@@ -129,7 +133,7 @@ def main():
                     shutil.copy(pred_path, pred_backup_dir / pred_path.name)
             
             # Xây dựng chuỗi kết quả
-            log_msg = f"✅ Xong {img_id} ({latency:.2f}s) | CER: {metrics['cer']:.3f} | WER: {metrics['wer']:.3f} | Sim: {metrics['sim']:.2%}"
+            log_msg = f"Xong {img_id} ({latency:.2f}s) | CER: {metrics['cer']:.3f} | WER: {metrics['wer']:.3f} | Sim: {metrics['sim']:.2%}"
             if "table_f1" in metrics:
                 log_msg += f" | Table F1: {metrics['table_f1']:.2%}"
             if "kie_f1" in metrics:
@@ -137,11 +141,11 @@ def main():
                 
             return log_msg
         except Exception as e:
-            return f"❌ LỖI tại {img_id}: {e}"
+            return f"LỖI tại {img_id}: {e}"
 
     processed_this_session = 0
     if args.workers > 1:
-        print(f"⚡ Bật chế độ chạy song song với {args.workers} workers...")
+        logger.info(f"Bật chế độ chạy song song với {args.workers} workers...")
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = [executor.submit(process_image, img_path) for img_path in all_images]
             for future in as_completed(futures):
@@ -157,9 +161,9 @@ def main():
                 print(msg)
                 processed_this_session += 1
             
-    print("\n" + "="*80)
-    print("📈 TỔNG KẾT ĐÁNH GIÁ (EVALUATION REPORT)")
-    print("="*80)
+    logger.info("\n" + "="*80)
+    logger.info("TỔNG KẾT ĐÁNH GIÁ (EVALUATION REPORT)")
+    logger.info("="*80)
     
     if results:
         # Nhóm kết quả theo dataset/thư mục
@@ -179,7 +183,7 @@ def main():
         txt_report_file = Path("evaluation/ocr/eval_report.txt")
         with open(txt_report_file, "w", encoding="utf-8") as f:
             f.write("="*80 + "\n")
-            f.write("📊 BÁO CÁO BENCHMARK THEO LOẠI TÀI LIỆU (CATEGORIZED)\n")
+            f.write("BÁO CÁO BENCHMARK THEO LOẠI TÀI LIỆU (CATEGORIZED)\n")
             f.write("="*80 + "\n\n")
             
             for cat, items in sorted(grouped.items()):
@@ -200,11 +204,11 @@ def main():
                     cat_sim_token = sum(r.get("sim_token", r["sim"]) for r in items) / cat_n
                     special_metrics = f" | TokenSim: {cat_sim_token:.2%}"
                 
-                f.write(f"📁 Nhóm: {cat.upper()} ({cat_n} file)\n")
+                f.write(f"Nhóm: {cat.upper()} ({cat_n} file)\n")
                 f.write(f"   -> CER: {cat_cer:.3f} | WER: {cat_wer:.3f} | Sim: {cat_sim:.2%}{special_metrics}\n\n")
 
             f.write("="*80 + "\n")
-            f.write("🔥 TỔNG KẾT TOÀN HỆ THỐNG (OVERALL)\n")
+            f.write("TỔNG KẾT TOÀN HỆ THỐNG (OVERALL)\n")
             f.write("="*80 + "\n")
             f.write(f"Tổng số file đã hoàn thành : {n}\n")
             f.write(f"CER trung bình toàn tập    : {total_cer/n:.3f}\n")
@@ -223,12 +227,12 @@ def main():
         with open(txt_report_file, "r", encoding="utf-8") as f:
             print(f.read())
             
-        print(f"\n📁 Đã lưu file báo cáo chi tiết tại: {txt_report_file}")
+        print(f"\nĐã lưu file báo cáo chi tiết tại: {txt_report_file}")
         
         # --- TỰ ĐỘNG NÉN FILE ZIP TRÊN COLAB ---
         import shutil
         zip_path = Path("evaluation/ocr/benchmark_results")
-        print("\n📦 Đang nén toàn bộ kết quả thành file ZIP...")
+        print("\nĐang nén toàn bộ kết quả thành file ZIP...")
         # Tạo thư mục tạm để gom các file báo cáo
         temp_dir = Path("evaluation/ocr/temp_zip")
         temp_dir.mkdir(exist_ok=True, parents=True)
@@ -253,7 +257,7 @@ def main():
         
         # Xóa thư mục tạm
         shutil.rmtree(temp_dir)
-        print(f"✅ Đã nén xong! File ZIP nằm tại: {zip_path}.zip (Hãy tải file này về máy)")
+        logger.info(f"Đã nén xong! File ZIP nằm tại: {zip_path}.zip (Hãy tải file này về máy)")
         
     else:
         print("Chưa có kết quả nào được ghi nhận.")

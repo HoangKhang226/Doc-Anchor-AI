@@ -12,7 +12,7 @@
 - **Sim (Similarity):** 86.06% (Độ tương đồng chuỗi)
 - **TokenSim (Token Similarity):** 84.05% (Độ tương đồng từ vựng/cấu trúc)
 
-### 📈 Chỉ số Trích xuất Nội dung (Content Extraction Score)
+### Chỉ số Trích xuất Nội dung (Content Extraction Score)
 
 Đây là thước đo quan trọng nhất đánh giá năng lực của VLM trong việc bắt chính xác các con số và thuật ngữ tài chính:
 

@@ -26,10 +26,6 @@ def render_sidebar():
         </div>
         <div class="pipeline-item">
             <div class="status-dot"></div> Table Extraction
-        </div>
-        <div class="pipeline-item inactive">
-            <div class="status-dot inactive-dot"></div> Chart Analysis (Crop)
-        </div>
         """, unsafe_allow_html=True)
         
         return view_mode

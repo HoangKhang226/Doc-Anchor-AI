@@ -35,7 +35,6 @@ class ExtractionResponse(BaseModel):
     markdown: str
     fields: Dict[str, Any]
     tables: List[ExtractedTableResponse]
-    chart_assets: List[Dict[str, Any]]
     raw_ocr: List[OCRBlockResponse]
     uncertain_tokens: List[str]
     quality_class: str
@@ -78,7 +77,6 @@ async def extract_document(file: UploadFile = File(...)):
             "markdown": result.markdown,
             "fields": result.fields,
             "tables": [{"name": t.name, "columns": t.columns, "rows": t.rows} for t in result.tables],
-            "chart_assets": result.chart_assets,
             "raw_ocr": [
                 {"text": b.text, "confidence": b.confidence, "bbox": b.bbox, "language": b.language} 
                 for b in result.raw_ocr

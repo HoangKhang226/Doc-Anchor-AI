@@ -1,12 +1,12 @@
-# 📄 OCR4RAG — Ingestion Pipeline
+# OCR4RAG — Ingestion Pipeline
 
 > **Module chuyển đổi tài liệu thô (ảnh chụp, ảnh scan) thành Markdown có cấu trúc, sẵn sàng xuất bản.**
 >
-> ⚠️ Project này **CHỈ LÀM OCR** — chuyển file đầu vào thành `.md` + `.json`. Không có Retrieval, không có Generation.
+> Project này **CHỈ LÀM OCR** — chuyển file đầu vào thành `.md` + `.json`. Không có Retrieval, không có Generation.
 
 ---
 
-## 📐 Kiến trúc tổng quan
+## Kiến trúc tổng quan
 
 ### Sơ đồ luồng dữ liệu (End-to-End)
 
@@ -24,9 +24,7 @@ flowchart TD
     H --> I["reconstruct_tables_from_ocr\n(table_reconstruction.py)"]
     E --> I
 
-    D --> U["ChartRegionDetector\n(OpenCV)"]
-    U --> V["Chart Assets\n(assets/)"]
-    
+
     G --> J["VLMOCRProcessor\n(Qwen2-VL qua Ollama)"]
     D --> J
 
@@ -47,7 +45,7 @@ flowchart TD
         A["Upload file\n(.png / .jpg / .jpeg)"]
     end
 
-    subgraph PREPROCESS["🔧 Preprocessing — Phase 2"]
+    subgraph PREPROCESS["Preprocessing — Phase 2"]
         A --> D["ImagePreprocessor\n(image_preprocessor.py)"]
         D -->|"CLAHE + Deskew"| E["cleaned_*.png"]
     end
@@ -62,17 +60,12 @@ flowchart TD
         H -->|"Decision Tree"| I["LayoutRoute\n(layout_mode + prompt_profile\n+ recommended_temperature)"]
     end
 
-    subgraph TABLE_DETECT["📊 Table Detection — Phase 6"]
+    subgraph TABLE_DETECT["Table Detection — Phase 6"]
         E --> J["TableRegionDetector\n(table_region_detection.py)\nPPStructure (Layout)"]
         J --> K["Table Regions\n(bbox)"]
         G --> L["Table Reconstruction\n(table_reconstruction.py)"]
         K --> L
         L --> M["ExtractedTable\n+ Reconstructed MD"]
-    end
-
-    subgraph CHART_DETECT["📈 Chart Detection — Phase 6b"]
-        E --> U1["ChartRegionDetector\n(chart_region_detector.py)"]
-        U1 --> U2["Chart Assets\n(.jpg)"]
     end
 
     subgraph VLM[" VLM Extraction — Phase 5"]
@@ -83,7 +76,7 @@ flowchart TD
         O --> P["Raw VLM Markdown"]
     end
 
-    subgraph VALIDATE["🛡️ Validation — Phase 7-8"]
+    subgraph VALIDATE["Validation — Phase 7-8"]
         P --> Q["_validate_and_fallback_tables\n(OpenCV-VLM Table Validator)"]
         M --> Q
         Q --> R["_normalize_markdown\n+ _cleanup_markdown_for_rag"]
@@ -107,23 +100,27 @@ flowchart TD
 
 ---
 
-## 📁 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 src/ingestion/
-├── pipeline.py                    # Orchestrator chính — điều phối toàn bộ luồng (633 dòng)
-├── image_preprocessor.py          # Tiền xử lý ảnh (CLAHE + Deskew bằng OpenCV)
-├── vlm_ocr.py                     # Gọi Qwen2-VL qua Ollama (LangChain ChatOllama)
-├── table_region_detection.py      # Phát hiện vùng bảng bằng mô hình PPStructure (Deep Learning)
-├── table_reconstruction.py        # Dựng lại cấu trúc bảng từ OCR bbox (657 dòng)
-├── chart_region_detector.py       # Cắt và cô lập vùng Biểu đồ (Charts)
-│
+├── pipeline.py                    # Orchestrator chính — điều phối toàn bộ luồng
 ├── api/                           # API Layer
 │   └── routes/
 │       └── ingestion.py           # Endpoint POST /api/v1/extract (FastAPI)
 │
+├── core/                          # Các thành phần tiền/hậu xử lý lõi
+│   ├── image_preprocessor.py      # Tiền xử lý ảnh (CLAHE + Deskew bằng OpenCV)
+│   ├── document_parser.py         # Phân tích cú pháp tài liệu
+│   └── classifier.py              # Phân loại tài liệu
+│
 ├── extractors/                    # OCR Engines
-│   └── paddle_ocr_extractor.py    # PaddleOCR 2.x/3.x wrapper (lazy-load, auto-fallback)
+│   ├── paddle_ocr_extractor.py    # PaddleOCR 2.x/3.x wrapper (lazy-load, auto-fallback)
+│   └── vlm_ocr_extractor.py       # Gọi Qwen2-VL qua Ollama (LangChain ChatOllama)
+│
+├── tables/                        # Xử lý và nhận diện bảng biểu
+│   ├── table_region_detection.py  # Phát hiện vùng bảng bằng mô hình PPStructure (Deep Learning)
+│   └── table_reconstruction.py    # Dựng lại cấu trúc bảng từ OCR bbox
 │
 ├── prompts/                       # Prompt Engineering
 │   ├── __init__.py
@@ -140,7 +137,7 @@ src/ingestion/
 
 ---
 
-## 🔄 9 Phase xử lý chi tiết
+## 9 Phase xử lý chi tiết
 
 
 
@@ -262,11 +259,6 @@ Nâng cấp từ OpenCV thuần túy sang **PPStructure (PaddleOCR)**:
 
 Output: `list[TableRegion]` — bbox + confidence score.
 
-#### 6b. `ChartRegionDetector` — Phát hiện Biểu đồ (Mới)
-
-- Tự động nhận diện, cắt và cô lập các hình ảnh/biểu đồ (Charts) ra khỏi văn bản.
-- Lưu trữ riêng dưới dạng file ảnh `.jpg` để sau này RAG có thể tham chiếu trực tiếp.
-
 #### 6b. `table_reconstruction.py` — Dựng lại bảng từ OCR bbox
 
 Thuật toán heuristic:
@@ -348,7 +340,7 @@ ExtractionResult → save_outputs()
 
 ---
 
-## 📊 Data Models (`schemas/extraction_result.py`)
+## Data Models (`schemas/extraction_result.py`)
 
 | Class              | Các trường chính                                                                                                                    | Mô tả                                 |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -359,13 +351,13 @@ ExtractionResult → save_outputs()
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Thành phần       | Công nghệ                            | Vai trò                               |
 | ---------------- | ------------------------------------ | ------------------------------------- |
 | OCR Engine       | PaddleOCR 2.x/3.x                    | Trích xuất text + bbox từ ảnh         |
 | Vision LLM       | Qwen2-VL 7B (via Ollama)             | Sinh Markdown từ ảnh + OCR context    |
-| Image Processing | OpenCV + PPStructure                 | CLAHE, Deskew, Table/Chart Detection  |
+| Image Processing | OpenCV + PPStructure                 | CLAHE, Deskew, Table Detection        |
 | API Layer        | FastAPI + Pydantic                   | Phục vụ HTTP Request cho Pipeline     |
 | PDF Parser       | Docling                              | Parse PDF digital có text layer       |
 | LLM Framework    | LangChain (ChatOllama, HumanMessage) | Giao tiếp với Ollama                  |
@@ -374,7 +366,7 @@ ExtractionResult → save_outputs()
 
 ---
 
-## ⚙️ Cấu hình (`config/setting.yaml`)
+## Cấu hình (`config/setting.yaml`)
 
 ```yaml
 llm:
@@ -394,7 +386,7 @@ ingestion:
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Test đơn lẻ
 
@@ -412,7 +404,7 @@ Output lưu tại:
 
 - `data/processed/{tên_ảnh}.md` — Markdown
 - `data/processed/{tên_ảnh}.json` — JSON metadata
-- `data/processed/assets/` — Thư mục chứa Biểu đồ (Charts) cắt ra
+
 
 ### API Mode
 
@@ -437,7 +429,7 @@ Kết quả benchmark trên 50 tài liệu `custom_doc_anchor_ai`:
 
 ---
 
-## 💡 Triết lý thiết kế
+## Triết lý thiết kế
 
 1. **VLM-First:** Qwen2.5-VL 7B là "bộ não" chính. PaddleOCR chỉ là "mắt kính" cung cấp sườn text + tọa độ.
 2. **Anti-Hallucination:** VLM bị ép phải dựa trên sườn text PaddleOCR, chỉ được thêm dấu, KHÔNG được thay thế chữ hoặc bịa số.

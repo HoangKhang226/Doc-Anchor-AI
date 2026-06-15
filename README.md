@@ -28,8 +28,7 @@ Mỗi giai đoạn là một module độc lập được đặt tại thư mụ
 2. Phân tích Bố cục: Nhận diện thông minh các đoạn văn, bảng biểu phức tạp và vùng chứa biểu đồ.
 3. Trích xuất Văn bản: Trích xuất văn bản thô với hiệu suất cao sử dụng PaddleOCR.
 4. Tái cấu trúc bằng VLM: Sử dụng các Mô hình Ngôn ngữ Thị giác (VLM) để tái cấu trúc các biểu mẫu và bảng biểu phức tạp thành định dạng Markdown chuẩn xác.
-5. Trích xuất Biểu đồ: Cắt xén tự động kết hợp với yếu tố con người (Human-in-the-loop) để phân tích số liệu từ biểu đồ.
-6. Tổng hợp Cuối cùng: Ghép tất cả các thành phần đã trích xuất thành một tài liệu Markdown duy nhất, hoàn chỉnh kèm theo tọa độ không gian.
+5. Tổng hợp Cuối cùng: Ghép tất cả các thành phần đã trích xuất thành một tài liệu Markdown duy nhất, hoàn chỉnh kèm theo tọa độ không gian.
 
 ---
 
@@ -58,9 +57,9 @@ python main.py
 .
 ├── src/
 │   └── ingestion/                 # Pipeline OCR Cốt lõi
+│       ├── core/                  # Các thành phần tiền xử lý và logic phân loại lõi
 │       ├── extractors/            # Module trích xuất (PaddleOCR & VLM)
-│       ├── table_region_detector/ # Nhận diện Bảng bằng OpenCV
-│       ├── chart_region_detector/ # Nhận diện Biểu đồ bằng OpenCV
+│       ├── tables/                # Module xử lý và nhận diện bảng biểu
 │       └── pipeline.py            # File điều phối trung tâm
 ├── evaluation/
 │   └── ocr/                       # Bộ công cụ Benchmark & Đánh giá

@@ -10,9 +10,9 @@ def main():
                 # Giữ nguyên cấu trúc thư mục con tương ứng
                 arcname = file.relative_to(Path("evaluation/ocr/data"))
                 zipf.write(file, arcname=arcname)
-        print(f"✅ Đã nén {len(pred_files)} file .pred.md thành công vào: {zip_path}")
+        print(f"Đã nén {len(pred_files)} file .pred.md thành công vào: {zip_path}")
     else:
-        print("❌ Không tìm thấy file .pred.md nào để nén!")
+        print("Không tìm thấy file .pred.md nào để nén!")
 
 if __name__ == "__main__":
     main()

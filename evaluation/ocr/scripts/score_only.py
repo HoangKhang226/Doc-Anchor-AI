@@ -10,8 +10,11 @@ Bao gồm:
 Cách dùng:
   python evaluation/ocr/scripts/score_only.py
 """
-import sys, re
+import sys, re, logging
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
 from collections import Counter
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -227,16 +230,16 @@ def main():
     pred_files = sorted(data_dir.glob("*.pred.md"))
     
     if not pred_files:
-        print("❌ Không tìm thấy file .pred.md nào!")
+        logger.info("Không tìm thấy file .pred.md nào!")
         return
     
     results = []
     
-    print("=" * 110)
-    print("📊 CHẤM ĐIỂM ĐA CHIỀU (Text Similarity + Content Extraction)")
-    print("=" * 110)
-    print(f"{'File':<45} | {'Sim':>6} | {'TkSim':>6} | {'NumF1':>6} | {'LblRc':>6} | {'Content':>7} |")
-    print("-" * 110)
+    logger.info("=" * 110)
+    logger.info("CHẤM ĐIỂM ĐA CHIỀU (Text Similarity + Content Extraction)")
+    logger.info("=" * 110)
+    logger.info(f"{'File':<45} | {'Sim':>6} | {'TkSim':>6} | {'NumF1':>6} | {'LblRc':>6} | {'Content':>7} |")
+    logger.info("-" * 110)
     
     for pred_file in pred_files:
         img_name = pred_file.name.replace(".pred.md", "")
@@ -270,29 +273,29 @@ def main():
         })
         
         # Emoji
-        icon = "🟢" if ce["content_score"] >= 0.85 else "🟡" if ce["content_score"] >= 0.70 else "🔴"
+        icon = "[OK]" if ce["content_score"] >= 0.85 else "[WARN]" if ce["content_score"] >= 0.70 else "[FAIL]"
         short_name = img_name[:42] + "..." if len(img_name) > 45 else img_name
-        print(f"{icon} {short_name:<44} | {sim:>5.1%} | {sim_token:>5.1%} | {ce['num_f1']:>5.1%} | {ce['label_recall']:>5.1%} | {ce['content_score']:>6.1%} |")
+        logger.info(f"{icon} {short_name:<44} | {sim:>5.1%} | {sim_token:>5.1%} | {ce['num_f1']:>5.1%} | {ce['label_recall']:>5.1%} | {ce['content_score']:>6.1%} |")
     
     if not results:
-        print("Không có kết quả nào.")
+        logger.info("Không có kết quả nào.")
         return
     
     n = len(results)
     avg = lambda key: sum(r[key] for r in results) / n
     
-    print("\n" + "=" * 110)
-    print("📈 TỔNG KẾT")
-    print("=" * 110)
-    print(f"Tổng số file                : {n}")
-    print(f"CER trung bình              : {avg('cer'):.3f}")
-    print(f"WER trung bình              : {avg('wer'):.3f}")
-    print(f"Sim trung bình (normalized) : {avg('sim'):.2%}")
-    print(f"TokenSim trung bình         : {avg('sim_token'):.2%}")
-    print(f"─── Content Extraction ───")
-    print(f"Number F1 trung bình        : {avg('num_f1'):.2%}")
-    print(f"Label Recall trung bình     : {avg('label_recall'):.2%}")
-    print(f"Content Score trung bình    : {avg('content_score'):.2%}")
+    logger.info("\n" + "=" * 110)
+    logger.info("TỔNG KẾT")
+    logger.info("=" * 110)
+    logger.info(f"Tổng số file                : {n}")
+    logger.info(f"CER trung bình              : {avg('cer'):.3f}")
+    logger.info(f"WER trung bình              : {avg('wer'):.3f}")
+    logger.info(f"Sim trung bình (normalized) : {avg('sim'):.2%}")
+    logger.info(f"TokenSim trung bình         : {avg('sim_token'):.2%}")
+    logger.info(f"─── Content Extraction ───")
+    logger.info(f"Number F1 trung bình        : {avg('num_f1'):.2%}")
+    logger.info(f"Label Recall trung bình     : {avg('label_recall'):.2%}")
+    logger.info(f"Content Score trung bình    : {avg('content_score'):.2%}")
     
     # Xuất file txt
     report = Path("evaluation/ocr/eval_report.txt")
@@ -313,7 +316,7 @@ def main():
         f.write(f"CER: {avg('cer'):.3f} | WER: {avg('wer'):.3f} | Sim: {avg('sim'):.2%} | TokenSim: {avg('sim_token'):.2%}\n")
         f.write(f"Number F1: {avg('num_f1'):.2%} | Label Recall: {avg('label_recall'):.2%} | Content Score: {avg('content_score'):.2%}\n")
     
-    print(f"\n📁 Đã lưu báo cáo tại: {report}")
+    logger.info(f"\nĐã lưu báo cáo tại: {report}")
 
 
 if __name__ == "__main__":

@@ -76,4 +76,4 @@ Mở terminal trong môi trường ảo (venv) và chạy:
 ```bash
 python evaluation/ocr/scripts/score_only.py
 ```
-Script sẽ tự động quét thư mục `data/custom_finsight`, in bảng báo cáo ra màn hình với các icon màu sắc (🟢, 🟡, 🔴) đánh giá chất lượng, và lưu một bản báo cáo đầy đủ vào `evaluation/ocr/eval_report.txt`.
+Script sẽ tự động quét thư mục `data/custom_finsight`, in bảng báo cáo ra màn hình đánh giá chất lượng, và lưu một bản báo cáo đầy đủ vào `evaluation/ocr/eval_report.txt`.
